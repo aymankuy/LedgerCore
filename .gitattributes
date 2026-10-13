@@ -1,0 +1,5 @@
+* text=auto eol=lf
+*.{cmd,bat,ps1} text eol=crlf
+*.sln text eol=crlf
+*.pbix binary
+*.png binary
