@@ -1,3 +1,4 @@
+using System.Globalization;
 using LedgerCore.Domain.Accounts;
 using LedgerCore.Domain.Common;
 using LedgerCore.Domain.Ledger;
@@ -103,7 +104,7 @@ public class LedgerTransactionTests
     [InlineData("0.00001")]
     public void Invalid_amounts_are_rejected(string amount)
     {
-        var act = () => LedgerTransaction.Deposit(Settlement(), Customer(), decimal.Parse(amount), Now);
+        var act = () => LedgerTransaction.Deposit(Settlement(), Customer(), decimal.Parse(amount, CultureInfo.InvariantCulture), Now);
 
         act.Should().Throw<DomainValidationException>();
     }
