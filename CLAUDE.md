@@ -193,7 +193,7 @@ Deliverables:
 Acceptance criteria:
 - Concurrency tests run against a real SQL Server via Testcontainers, not an in-memory provider. In-memory providers do not reproduce locking behaviour and are not acceptable here.
 - Tests pass 20 consecutive runs without flaking.
-- `docs/decisions/0001-isolation-level.md` explains the chosen isolation level and the alternatives rejected.
+- `docs/decisions/0002-isolation-level.md` explains the chosen isolation level and the alternatives rejected.
 
 **For the README:** capture a naive implementation failing these tests, then the fixed version passing. This before/after is the single most persuasive artifact in the repository.
 
