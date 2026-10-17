@@ -1,3 +1,4 @@
+using LedgerCore.Application.Abstractions.Persistence;
 using LedgerCore.Domain.Accounts;
 using LedgerCore.Domain.Common;
 using LedgerCore.Domain.Ledger;
@@ -7,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LedgerCore.Infrastructure.Persistence;
 
-public sealed class LedgerDbContext(DbContextOptions<LedgerDbContext> options) : DbContext(options)
+public sealed class LedgerDbContext(DbContextOptions<LedgerDbContext> options) : DbContext(options), IUnitOfWork
 {
     public DbSet<User> Users => Set<User>();
     public DbSet<Account> Accounts => Set<Account>();
@@ -15,6 +16,8 @@ public sealed class LedgerDbContext(DbContextOptions<LedgerDbContext> options) :
     public DbSet<LedgerEntry> LedgerEntries => Set<LedgerEntry>();
     public DbSet<IdempotencyRecord> IdempotencyKeys => Set<IdempotencyRecord>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+
+    Task IUnitOfWork.SaveChangesAsync(CancellationToken cancellationToken) => SaveChangesAsync(cancellationToken);
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
