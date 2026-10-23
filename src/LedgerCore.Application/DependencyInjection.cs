@@ -17,6 +17,10 @@ public static class DependencyInjection
         });
         services.AddValidatorsFromAssembly(assembly, includeInternalTypes: true);
 
+        // Error messages are part of the API contract, so they stay English whatever the
+        // server culture is (FluentValidation would otherwise localise them).
+        ValidatorOptions.Global.LanguageManager.Enabled = false;
+
         // The system clock; tests substitute their own TimeProvider.
         services.AddSingleton(TimeProvider.System);
 
