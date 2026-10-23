@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore -c Release
+
+      # Integration tests start SQL Server through Testcontainers; the runner has Docker.
+      - name: Test
+        run: dotnet test --no-build -c Release --logger trx --results-directory TestResults
+
+      - name: Unit test coverage (Domain and Application, target 70%)
+        run: |
+          dotnet test tests/LedgerCore.UnitTests --no-build -c Release \
+            --settings tests/coverage.runsettings --collect:"XPlat Code Coverage" \
+            --results-directory TestResults/coverage
+          report=$(find TestResults/coverage -name coverage.cobertura.xml | head -n 1)
+          fail=0
+          for package in LedgerCore.Domain LedgerCore.Application; do
+            rate=$(grep -o "<package name=\"$package\" line-rate=\"[0-9.]*\"" "$report" | grep -o '[0-9.]*"$' | tr -d '"')
+            percent=$(awk -v r="$rate" 'BEGIN { printf "%.1f", r * 100 }')
+            echo "$package line coverage: $percent%"
+            awk -v r="$rate" 'BEGIN { exit !(r >= 0.70) }' || fail=1
+          done
+          exit $fail
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TestResults
+
+      - name: Publish API
+        run: dotnet publish src/LedgerCore.Api/LedgerCore.Api.csproj --no-build -c Release -o publish
+
+      - name: Upload API artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ledgercore-api
+          path: publish
+
+      - name: Build Docker image
+        run: docker build -t ledgercore-api:${{ github.sha }} .
