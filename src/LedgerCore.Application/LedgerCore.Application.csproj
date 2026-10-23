@@ -3,4 +3,10 @@
   <ItemGroup>
     <ProjectReference Include="..\LedgerCore.Domain\LedgerCore.Domain.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MediatR" />
+    <PackageReference Include="FluentValidation" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+  </ItemGroup>
 </Project>
