@@ -5,6 +5,7 @@ using LedgerCore.Infrastructure.Authentication;
 using LedgerCore.Infrastructure.Data;
 using LedgerCore.Infrastructure.Persistence;
 using LedgerCore.Infrastructure.Persistence.Repositories;
+using LedgerCore.Infrastructure.Persistence.Seeding;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -26,6 +27,10 @@ public static class DependencyInjection
         services.AddSingleton<IDbConnectionFactory>(new SqlConnectionFactory(connectionString));
 
         services.AddSingleton<IPasswordHasher, PasswordHasher>();
+
+        // Options are bound by the host; unbound, every startup step is off.
+        services.AddOptions<DatabaseOptions>();
+        services.AddScoped<DatabaseInitializer>();
 
         return services;
     }

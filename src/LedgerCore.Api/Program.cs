@@ -2,6 +2,7 @@ using LedgerCore.Api.Authentication;
 using LedgerCore.Api.ErrorHandling;
 using LedgerCore.Application;
 using LedgerCore.Infrastructure;
+using LedgerCore.Infrastructure.Persistence.Seeding;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +12,7 @@ var connectionString = builder.Configuration.GetConnectionString("Ledger")
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(connectionString);
+builder.Services.Configure<DatabaseOptions>(builder.Configuration.GetSection(DatabaseOptions.SectionName));
 builder.Services.AddJwtAuthentication(builder.Configuration);
 
 builder.Services.AddControllers();
@@ -27,7 +29,9 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-app.Run();
+await app.Services.InitializeDatabaseAsync();
+
+await app.RunAsync();
 
 // Exposed so integration tests can host the API via WebApplicationFactory<Program>.
 public partial class Program;
