@@ -1,4 +1,5 @@
 using LedgerCore.Application;
+using LedgerCore.Application.Abstractions.Authentication;
 using LedgerCore.Application.Accounts.OpenAccount;
 using LedgerCore.Domain.Accounts;
 using LedgerCore.Domain.Common;
@@ -27,6 +28,10 @@ public sealed class LedgerTestApp(SqlServerFixture fixture)
         var services = new ServiceCollection()
             .AddApplication()
             .AddInfrastructure(fixture.ConnectionString);
+
+        // These tests exercise the handlers, not access control, so they run as an admin.
+        // Ownership is covered by the HTTP tests.
+        services.AddSingleton<ICurrentUser>(new AdminUser());
 
         if (utcNow is { } now)
         {
@@ -67,6 +72,13 @@ public sealed class LedgerTestApp(SqlServerFixture fixture)
         var systemUserId = await SeedUserAsync();
         db.Accounts.Add(Account.OpenSettlement(systemUserId, currency, SeedTime));
         await db.SaveChangesAsync();
+    }
+
+    private sealed class AdminUser : ICurrentUser
+    {
+        public Guid UserId { get; } = Guid.NewGuid();
+
+        public bool IsAdmin => true;
     }
 
     private sealed class FixedTimeProvider(DateTime utcNow) : TimeProvider

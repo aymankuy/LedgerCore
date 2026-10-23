@@ -1,3 +1,4 @@
+using LedgerCore.Application.Abstractions.Authentication;
 using MediatR;
 
 namespace LedgerCore.Application.Ledger.Transfer;
@@ -8,4 +9,8 @@ public sealed record TransferMoneyCommand(
     Guid DestinationAccountId,
     decimal Amount,
     string? ReferenceId = null,
-    string? Description = null) : IRequest<Guid>;
+    string? Description = null) : IRequest<Guid>, IAccountScopedRequest
+{
+    // Only the source must belong to the caller; paying into someone else's account is the point.
+    Guid IAccountScopedRequest.AccountId => SourceAccountId;
+}

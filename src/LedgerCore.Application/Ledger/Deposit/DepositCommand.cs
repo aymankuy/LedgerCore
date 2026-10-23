@@ -1,3 +1,4 @@
+using LedgerCore.Application.Abstractions.Authentication;
 using MediatR;
 
 namespace LedgerCore.Application.Ledger.Deposit;
@@ -7,4 +8,4 @@ public sealed record DepositCommand(
     Guid AccountId,
     decimal Amount,
     string? ReferenceId = null,
-    string? Description = null) : IRequest<Guid>;
+    string? Description = null) : IRequest<Guid>, IAccountScopedRequest;

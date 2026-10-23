@@ -1,3 +1,4 @@
+using LedgerCore.Application.Abstractions.Authentication;
 using LedgerCore.Domain.Ledger;
 using MediatR;
 
@@ -5,7 +6,7 @@ namespace LedgerCore.Application.Accounts.GetStatement;
 
 /// <summary>Entries of one account in the half-open window [FromUtc, ToUtc), with running balances.</summary>
 public sealed record GetAccountStatementQuery(Guid AccountId, DateTime FromUtc, DateTime ToUtc)
-    : IRequest<AccountStatementResponse>;
+    : IRequest<AccountStatementResponse>, IAccountScopedRequest;
 
 public sealed record AccountStatementResponse(
     Guid AccountId,
