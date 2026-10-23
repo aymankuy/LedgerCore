@@ -157,7 +157,7 @@ internal sealed class DatabaseInitializer(
         await ledger.PostAsync(LedgerTransaction.Deposit(settlement, bobAccount, 250m, now, description: "Demo opening deposit"), cancellationToken);
         await ledger.PostAsync(LedgerTransaction.Transfer(aliceAccount, 1_000m, bobAccount, 75m, now, description: "Demo transfer"), cancellationToken);
 
-        logger.LogInformation("Seeded demo users {Emails}", SeedUsers.DemoEmails);
+        logger.LogInformation("Seeded demo users {Emails}", string.Join(", ", SeedUsers.DemoEmails));
     }
 
     private async Task<User> EnsureUserAsync(
