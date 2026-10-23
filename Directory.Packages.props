@@ -23,6 +23,10 @@
   <ItemGroup Label="Read side">
     <PackageVersion Include="Dapper" Version="2.1.66" />
   </ItemGroup>
+  <ItemGroup Label="Security">
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.20" />
+    <PackageVersion Include="Microsoft.Extensions.Identity.Core" Version="9.0.20" />
+  </ItemGroup>
   <ItemGroup Label="Hosting">
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="9.0.19" />
   </ItemGroup>
