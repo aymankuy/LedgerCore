@@ -70,6 +70,12 @@ public sealed class LedgerTransaction
             throw new DomainValidationException("Source and destination accounts must differ.");
         }
 
+        // Money entering or leaving the platform must be a deposit or withdrawal, never a transfer.
+        if (source.Kind != AccountKind.Customer || destination.Kind != AccountKind.Customer)
+        {
+            throw new DomainValidationException("Transfers are only allowed between customer accounts.");
+        }
+
         EnsureSameCurrency(source, destination);
         destination.EnsureCanTransact();
         source.EnsureCanBeDebited(sourceBalance, amount);

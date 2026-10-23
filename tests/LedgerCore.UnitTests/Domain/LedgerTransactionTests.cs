@@ -86,6 +86,14 @@ public class LedgerTransactionTests
     }
 
     [Fact]
+    public void Transfer_involving_a_settlement_account_is_rejected()
+    {
+        var act = () => LedgerTransaction.Transfer(Customer(), sourceBalance: 50m, Settlement(), amount: 10m, Now);
+
+        act.Should().Throw<DomainValidationException>();
+    }
+
+    [Fact]
     public void Transfer_to_the_same_account_is_rejected()
     {
         var account = Customer();
