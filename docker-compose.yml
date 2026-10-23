@@ -1,0 +1,60 @@
+# Local environment: `docker compose up`, then open http://localhost:8080/swagger.
+#
+# Every credential below is a local-only default so a clean checkout starts without setup.
+# Override any of them in a gitignored .env file (see .env.example). None of these values is
+# used outside this file, and every port is bound to 127.0.0.1. See ADR 0004.
+
+name: ledgercore
+
+services:
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-LocalOnly_Sa_9x2!}
+    ports:
+      # 14333, not 1433, so it does not clash with a SQL Server installed on the host.
+      - "127.0.0.1:14333:1433"
+    volumes:
+      - mssql-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' -b -o /dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  # Not used by the API yet; the caching pipeline behaviour arrives in Phase 3.
+  redis:
+    image: redis:7.4-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: .
+    depends_on:
+      mssql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      # The API runs as a least-privilege login; sa is used only to migrate and to create that login.
+      ConnectionStrings__Ledger: "Server=mssql;Database=LedgerCore;User Id=ledgercore_app;Password=${APP_DB_PASSWORD:-LocalOnly_App_7k4!};TrustServerCertificate=True"
+      Database__MigrationConnectionString: "Server=mssql;Database=LedgerCore;User Id=sa;Password=${MSSQL_SA_PASSWORD:-LocalOnly_Sa_9x2!};TrustServerCertificate=True"
+      Database__MigrateOnStartup: "true"
+      Database__AppLogin: ledgercore_app
+      Database__AppLoginPassword: ${APP_DB_PASSWORD:-LocalOnly_App_7k4!}
+      Database__AdminEmail: admin@ledgercore.local
+      Database__AdminPassword: ${ADMIN_PASSWORD:-admin-local-only}
+      Database__SeedDemoData: "true"
+      Database__DemoPassword: ${DEMO_PASSWORD:-demo-password}
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:-local-only-signing-key-not-for-any-deployment}
+
+volumes:
+  mssql-data:
