@@ -14,7 +14,12 @@ public sealed class SqlServerFixture : IAsyncLifetime
     private readonly MsSqlContainer _container = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2022-latest")
         .Build();
 
+    private ApiFactory? _api;
+
     public string ConnectionString => _container.GetConnectionString();
+
+    /// <summary>The API hosted in memory against this database, started on first use.</summary>
+    public ApiFactory Api => _api ??= new ApiFactory(ConnectionString);
 
     public LedgerDbContext CreateDbContext() =>
         new(new DbContextOptionsBuilder<LedgerDbContext>().UseSqlServer(ConnectionString).Options);
@@ -27,7 +32,15 @@ public sealed class SqlServerFixture : IAsyncLifetime
         await db.Database.MigrateAsync();
     }
 
-    public Task DisposeAsync() => _container.DisposeAsync().AsTask();
+    public async Task DisposeAsync()
+    {
+        if (_api is not null)
+        {
+            await _api.DisposeAsync();
+        }
+
+        await _container.DisposeAsync();
+    }
 }
 
 [CollectionDefinition(Name)]
