@@ -59,6 +59,20 @@ public sealed class GetAccountStatementQueryTests(SqlServerFixture fixture)
     }
 
     [Fact]
+    public async Task Window_bounds_are_exact_to_the_millisecond()
+    {
+        // .002 is not representable as legacy datetime, which would round the bound up to .003
+        // and silently drop an entry written at exactly the start of the window.
+        var at = Day1.AddMilliseconds(2);
+        var accountId = await _app.OpenAccountAsync(Currency);
+        await _app.SendAsync(new DepositCommand(accountId, 10m), at);
+
+        var statement = await _app.SendAsync(new GetAccountStatementQuery(accountId, at, at.AddDays(1)));
+
+        statement.Lines.Should().ContainSingle().Which.CreatedAtUtc.Should().Be(at);
+    }
+
+    [Fact]
     public async Task Unknown_account_is_not_found()
     {
         var act = () => _app.SendAsync(new GetAccountStatementQuery(Guid.NewGuid(), Day1, Day2));

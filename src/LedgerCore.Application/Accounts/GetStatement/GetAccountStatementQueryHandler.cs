@@ -1,3 +1,4 @@
+using System.Data;
 using Dapper;
 using LedgerCore.Application.Abstractions.Data;
 using LedgerCore.Application.Common;
@@ -45,10 +46,15 @@ public sealed class GetAccountStatementQueryHandler(IDbConnectionFactory connect
     {
         await using var connection = await connectionFactory.OpenConnectionAsync(cancellationToken);
 
-        var command = new CommandDefinition(
-            Sql,
-            new { query.AccountId, query.FromUtc, query.ToUtc },
-            cancellationToken: cancellationToken);
+        // Dapper sends DateTime as legacy datetime (3.33 ms steps) by default. Against a
+        // datetime2(3) column that shifts the window bounds and forces an implicit conversion,
+        // so the bounds are typed explicitly.
+        var parameters = new DynamicParameters();
+        parameters.Add("AccountId", query.AccountId);
+        parameters.Add("FromUtc", query.FromUtc, DbType.DateTime2);
+        parameters.Add("ToUtc", query.ToUtc, DbType.DateTime2);
+
+        var command = new CommandDefinition(Sql, parameters, cancellationToken: cancellationToken);
 
         await using var results = await connection.QueryMultipleAsync(command);
 
