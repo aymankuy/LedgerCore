@@ -20,6 +20,9 @@
     <PackageVersion Include="FluentValidation" Version="12.0.0" />
     <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.0.0" />
   </ItemGroup>
+  <ItemGroup Label="Read side">
+    <PackageVersion Include="Dapper" Version="2.1.66" />
+  </ItemGroup>
   <ItemGroup Label="Hosting">
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="9.0.19" />
   </ItemGroup>
