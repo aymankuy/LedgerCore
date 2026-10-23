@@ -19,6 +19,8 @@ internal static class AuthenticationSetup
             .ValidateOnStart();
 
         services.AddSingleton<ITokenService, JwtTokenService>();
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentUser, HttpCurrentUser>();
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
         services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
