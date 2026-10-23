@@ -42,6 +42,11 @@ namespace LedgerCore.Infrastructure.Persistence.Migrations
                         .HasColumnType("char(3)")
                         .IsFixedLength();
 
+                    b.Property<byte>("Kind")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint")
+                        .HasDefaultValue((byte)1);
+
                     b.Property<Guid>("OwnerUserId")
                         .HasColumnType("uniqueidentifier");
 
@@ -55,10 +60,17 @@ namespace LedgerCore.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Currency")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Accounts_SettlementPerCurrency")
+                        .HasFilter("[Kind] = 2");
+
                     b.HasIndex("OwnerUserId");
 
                     b.ToTable("Accounts", null, t =>
                         {
+                            t.HasCheckConstraint("CK_Accounts_Kind", "[Kind] IN (1, 2)");
+
                             t.HasCheckConstraint("CK_Accounts_Status", "[Status] IN (1, 2, 3)");
                         });
                 });
