@@ -16,8 +16,19 @@ public class AccountTests
         account.Id.Should().NotBeEmpty();
         account.OwnerUserId.Should().Be(ownerId);
         account.Status.Should().Be(AccountStatus.Active);
+        account.Kind.Should().Be(AccountKind.Customer);
         account.AllowsOverdraft.Should().BeFalse();
         account.IsOwnedBy(ownerId).Should().BeTrue();
+    }
+
+    [Fact]
+    public void OpenSettlement_creates_a_settlement_account_that_allows_overdraft()
+    {
+        var account = Account.OpenSettlement(Guid.NewGuid(), Eur, Now);
+
+        account.Kind.Should().Be(AccountKind.Settlement);
+        account.AllowsOverdraft.Should().BeTrue();
+        account.Status.Should().Be(AccountStatus.Active);
     }
 
     [Fact]

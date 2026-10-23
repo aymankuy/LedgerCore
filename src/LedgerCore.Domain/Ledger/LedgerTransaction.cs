@@ -38,6 +38,7 @@ public sealed class LedgerTransaction
         Account settlement, Account destination, decimal amount, DateTime utcNow,
         string? referenceId = null, string? description = null)
     {
+        EnsureSettlement(settlement);
         EnsureSameCurrency(settlement, destination);
         settlement.EnsureCanTransact();
         destination.EnsureCanTransact();
@@ -52,6 +53,7 @@ public sealed class LedgerTransaction
         Account source, decimal sourceBalance, Account settlement, decimal amount, DateTime utcNow,
         string? referenceId = null, string? description = null)
     {
+        EnsureSettlement(settlement);
         EnsureSameCurrency(source, settlement);
         settlement.EnsureCanTransact();
         source.EnsureCanBeDebited(sourceBalance, amount);
@@ -95,6 +97,14 @@ public sealed class LedgerTransaction
         transaction._entries.Add(new LedgerEntry(transaction.Id, creditAccountId, EntryDirection.Credit, amount, createdAt));
 
         return transaction;
+    }
+
+    private static void EnsureSettlement(Account account)
+    {
+        if (account.Kind != AccountKind.Settlement)
+        {
+            throw new DomainValidationException("Deposits and withdrawals must go through a settlement account.");
+        }
     }
 
     private static void EnsureSameCurrency(Account a, Account b)

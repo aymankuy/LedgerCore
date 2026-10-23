@@ -11,6 +11,7 @@ public sealed class Account
     public Guid Id { get; private set; }
     public Guid OwnerUserId { get; private set; }
     public Currency Currency { get; private set; }
+    public AccountKind Kind { get; private set; }
     public AccountStatus Status { get; private set; }
     public bool AllowsOverdraft { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }
@@ -31,10 +32,22 @@ public sealed class Account
             Id = Guid.NewGuid(),
             OwnerUserId = ownerUserId,
             Currency = currency,
+            Kind = AccountKind.Customer,
             Status = AccountStatus.Active,
             AllowsOverdraft = allowsOverdraft,
             CreatedAtUtc = UtcTime.Ensure(utcNow),
         };
+    }
+
+    /// <summary>
+    /// Opens the settlement account for a currency. It is the debit side of every deposit, so its
+    /// balance is expected to go negative and overdraft is always allowed.
+    /// </summary>
+    public static Account OpenSettlement(Guid systemUserId, Currency currency, DateTime utcNow)
+    {
+        var account = Open(systemUserId, currency, utcNow, allowsOverdraft: true);
+        account.Kind = AccountKind.Settlement;
+        return account;
     }
 
     public bool IsOwnedBy(Guid userId) => OwnerUserId == userId;

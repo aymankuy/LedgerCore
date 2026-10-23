@@ -70,6 +70,22 @@ public class LedgerTransactionTests
     }
 
     [Fact]
+    public void Deposit_from_a_customer_account_is_rejected()
+    {
+        var act = () => LedgerTransaction.Deposit(Customer(), Customer(), 10m, Now);
+
+        act.Should().Throw<DomainValidationException>();
+    }
+
+    [Fact]
+    public void Withdrawal_to_a_customer_account_is_rejected()
+    {
+        var act = () => LedgerTransaction.Withdraw(Customer(), sourceBalance: 50m, Customer(), amount: 10m, Now);
+
+        act.Should().Throw<DomainValidationException>();
+    }
+
+    [Fact]
     public void Transfer_to_the_same_account_is_rejected()
     {
         var account = Customer();

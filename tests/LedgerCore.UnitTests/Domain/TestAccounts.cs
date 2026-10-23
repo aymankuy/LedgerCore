@@ -13,5 +13,5 @@ internal static class TestAccounts
         Account.Open(Guid.NewGuid(), Currency.From(currency), Now, allowsOverdraft);
 
     public static Account Settlement(string currency = "EUR") =>
-        Account.Open(Guid.NewGuid(), Currency.From(currency), Now, allowsOverdraft: true);
+        Account.OpenSettlement(Guid.NewGuid(), Currency.From(currency), Now);
 }
