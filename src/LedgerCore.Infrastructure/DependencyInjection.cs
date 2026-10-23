@@ -1,5 +1,7 @@
+using LedgerCore.Application.Abstractions.Authentication;
 using LedgerCore.Application.Abstractions.Data;
 using LedgerCore.Application.Abstractions.Persistence;
+using LedgerCore.Infrastructure.Authentication;
 using LedgerCore.Infrastructure.Data;
 using LedgerCore.Infrastructure.Persistence;
 using LedgerCore.Infrastructure.Persistence.Repositories;
@@ -18,9 +20,12 @@ public static class DependencyInjection
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<LedgerDbContext>());
         services.AddScoped<IAccountRepository, AccountRepository>();
         services.AddScoped<ILedgerRepository, LedgerRepository>();
+        services.AddScoped<IUserRepository, UserRepository>();
 
         // Read side: Dapper over its own connection, no repositories (spec Phase 3).
         services.AddSingleton<IDbConnectionFactory>(new SqlConnectionFactory(connectionString));
+
+        services.AddSingleton<IPasswordHasher, PasswordHasher>();
 
         return services;
     }
