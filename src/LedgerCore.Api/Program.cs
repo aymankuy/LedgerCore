@@ -1,3 +1,4 @@
+using LedgerCore.Api.Authentication;
 using LedgerCore.Api.ErrorHandling;
 using LedgerCore.Application;
 using LedgerCore.Infrastructure;
@@ -10,6 +11,7 @@ var connectionString = builder.Configuration.GetConnectionString("Ledger")
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(connectionString);
+builder.Services.AddJwtAuthentication(builder.Configuration);
 
 builder.Services.AddControllers();
 builder.Services.AddProblemDetails();
@@ -19,6 +21,9 @@ var app = builder.Build();
 
 app.UseExceptionHandler();
 app.UseStatusCodePages();
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
 

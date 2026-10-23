@@ -21,6 +21,8 @@ internal sealed class GlobalExceptionHandler(
         {
             ValidationException validation => ValidationProblem(validation),
             NotFoundException => Problem(StatusCodes.Status404NotFound, "Resource not found", "not_found", exception.Message),
+            ConflictException => Problem(StatusCodes.Status409Conflict, "Conflict", "conflict", exception.Message),
+            AuthenticationFailedException => Problem(StatusCodes.Status401Unauthorized, "Authentication failed", "authentication_failed", exception.Message),
             // A well-formed request that breaks a business rule, e.g. insufficient funds.
             DomainException domain => Problem(StatusCodes.Status422UnprocessableEntity, "Business rule violated", domain.Code, domain.Message),
             _ => Problem(StatusCodes.Status500InternalServerError, "An unexpected error occurred", "internal_error", detail: null),
