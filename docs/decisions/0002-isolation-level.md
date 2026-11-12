@@ -74,3 +74,17 @@ The cost is that incoming transfers to one hot account, such as a merchant recei
 payments, are serialized as well. If that becomes a bottleneck, the destination could take a
 shared lock held to commit (`HOLDLOCK` without `UPDLOCK`). Shared locks do not block each
 other, but they still block a concurrent status change.
+
+## Deadlock retry
+
+Lock ordering removes the deadlocks we know about, but not every possible one, for example
+a future query that takes locks in another order. So `ExecuteInTransactionAsync` runs the
+whole transaction through a Polly retry: on SQL Server error 1205 (deadlock victim), up to
+three more attempts, about 50, 100 and 200 ms apart, with jitter so two victims do not
+collide again. The server has already rolled the victim back, so a retry starts clean; the
+EF change tracker is cleared so no entity from the failed attempt is reused.
+
+Only error 1205 is retried. Business errors such as insufficient funds are not, because
+running them again gives the same answer. A test forces a real deadlock between two
+transactions and shows that both commit, with exactly one retry; without the retry, the
+deadlock reaches the caller.

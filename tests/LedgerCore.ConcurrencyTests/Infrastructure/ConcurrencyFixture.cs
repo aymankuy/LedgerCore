@@ -61,6 +61,13 @@ public sealed class ConcurrencyFixture : IAsyncLifetime
         return await scope.ServiceProvider.GetRequiredService<ISender>().Send(request);
     }
 
+    /// <summary>Runs <paramref name="action"/> with the services of one request scope.</summary>
+    public async Task<T> InScopeAsync<T>(Func<IServiceProvider, Task<T>> action)
+    {
+        await using var scope = _services!.CreateAsyncScope();
+        return await action(scope.ServiceProvider);
+    }
+
     /// <summary>Opens a customer account for a new user and deposits <paramref name="initialBalance"/> into it.</summary>
     public async Task<Guid> OpenFundedAccountAsync(string currency, decimal initialBalance)
     {

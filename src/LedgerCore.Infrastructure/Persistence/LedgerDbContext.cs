@@ -22,12 +22,23 @@ public sealed class LedgerDbContext(DbContextOptions<LedgerDbContext> options) :
 
     async Task<T> IUnitOfWork.ExecuteInTransactionAsync<T>(Func<Task<T>> work, CancellationToken cancellationToken)
     {
-        // READ COMMITTED on purpose: correctness comes from the explicit row lock on the account,
-        // not from a stricter isolation level (ADR 0002). Disposing without commit rolls back.
-        await using var transaction = await Database.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken);
-        var result = await work();
-        await transaction.CommitAsync(cancellationToken);
-        return result;
+        var attempt = 0;
+
+        return await DeadlockRetry.Pipeline.ExecuteAsync(async token =>
+        {
+            // Entities loaded by a rolled-back attempt are stale, so a retry starts from scratch.
+            if (attempt++ > 0)
+            {
+                ChangeTracker.Clear();
+            }
+
+            // READ COMMITTED on purpose: correctness comes from the explicit row lock on the account,
+            // not from a stricter isolation level (ADR 0002). Disposing without commit rolls back.
+            await using var transaction = await Database.BeginTransactionAsync(IsolationLevel.ReadCommitted, token);
+            var result = await work();
+            await transaction.CommitAsync(token);
+            return result;
+        }, cancellationToken);
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
