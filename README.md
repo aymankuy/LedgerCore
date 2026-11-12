@@ -55,7 +55,7 @@ Then open **http://localhost:8080/swagger**. On first start the API migrates the
 | `bob@demo.local` | `demo-password` | EUR account with 325.00 |
 | `admin@ledgercore.local` | `admin-local-only` | Admin: may read any account |
 
-In Swagger: call `POST /api/auth/login`, copy the `token`, click **Authorize** and paste it. These credentials are local-only defaults (see [ADR 0004](docs/decisions/0004-local-compose-credentials.md)); override them in a `.env` file. SQL Server is reachable from the host on `localhost,14333`.
+In Swagger: call `POST /api/auth/login`, copy the `token`, click **Authorize** and paste it. Every other `POST` needs an `Idempotency-Key` header: any unique value, such as a new GUID. These credentials are local-only defaults (see [ADR 0004](docs/decisions/0004-local-compose-credentials.md)); override them in a `.env` file. SQL Server is reachable from the host on `localhost,14333`.
 
 ### Endpoints
 
@@ -68,6 +68,8 @@ In Swagger: call `POST /api/auth/login`, copy the `token`, click **Authorize** a
 | POST | `/api/accounts/{id}/deposits`, `/withdrawals` | Money in and out through the settlement account |
 | POST | `/api/transfers` | Between customer accounts |
 | POST | `/api/accounts/{id}/freeze`, `/unfreeze` | Admin only: block or allow money movements on an account |
+
+Every write except login requires an `Idempotency-Key` header. Sending the same key again returns the first response without running the request twice; the same key with a different request returns 409. Keys are per user.
 
 Errors are RFC 7807 ProblemDetails with a stable `code` and the request's `correlationId`: 400 invalid input, 401 not authenticated, 404 not found **or not yours**, 409 conflict, 422 business rule (for example `insufficient_funds`).
 

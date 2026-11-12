@@ -30,6 +30,8 @@ internal static class SwaggerSetup
             options.AddSecurityDefinition("Bearer", bearer);
             options.AddSecurityRequirement(new OpenApiSecurityRequirement { [bearer] = [] });
 
+            options.OperationFilter<IdempotencyKeyOperationFilter>();
+
             var xmlFile = Path.Combine(AppContext.BaseDirectory, $"{Assembly.GetExecutingAssembly().GetName().Name}.xml");
             options.IncludeXmlComments(xmlFile);
         });
