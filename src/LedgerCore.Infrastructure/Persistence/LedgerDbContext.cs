@@ -34,6 +34,13 @@ public sealed class LedgerDbContext(DbContextOptions<LedgerDbContext> options) :
 
     async Task<T> IUnitOfWork.ExecuteInTransactionAsync<T>(Func<Task<T>> work, CancellationToken cancellationToken)
     {
+        // Already inside a transaction (the idempotency behavior opens one around the handler):
+        // join it. The outermost call owns the commit and the deadlock retry.
+        if (Database.CurrentTransaction is not null)
+        {
+            return await work();
+        }
+
         var attempt = 0;
 
         return await DeadlockRetry.Pipeline.ExecuteAsync(async token =>

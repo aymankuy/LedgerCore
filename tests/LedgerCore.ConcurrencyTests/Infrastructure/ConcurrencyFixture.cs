@@ -1,5 +1,6 @@
 using LedgerCore.Application;
 using LedgerCore.Application.Abstractions.Authentication;
+using LedgerCore.Application.Abstractions.Idempotency;
 using LedgerCore.Application.Accounts.OpenAccount;
 using LedgerCore.Application.Ledger.Deposit;
 using LedgerCore.Domain.Accounts;
@@ -42,6 +43,8 @@ public sealed class ConcurrencyFixture : IAsyncLifetime
             .AddApplication()
             .AddInfrastructure(_container.GetConnectionString())
             .AddSingleton<ICurrentUser>(new AdminUser())
+            .AddScoped<TestIdempotencyContext>()
+            .AddScoped<IIdempotencyContext>(sp => sp.GetRequiredService<TestIdempotencyContext>())
             .BuildServiceProvider();
     }
 
@@ -55,22 +58,25 @@ public sealed class ConcurrencyFixture : IAsyncLifetime
         await _container.DisposeAsync();
     }
 
-    public async Task<TResponse> SendAsync<TResponse>(IRequest<TResponse> request)
-    {
-        await using var scope = _services!.CreateAsyncScope();
-        return await scope.ServiceProvider.GetRequiredService<ISender>().Send(request);
-    }
+    /// <summary>
+    /// Sends one request in its own scope, like one HTTP request. Without
+    /// <paramref name="idempotencyKey"/> it gets a fresh key, so it always runs.
+    /// </summary>
+    public Task<TResponse> SendAsync<TResponse>(IRequest<TResponse> request, string? idempotencyKey = null) =>
+        InScopeAsync(services => services.GetRequiredService<ISender>().Send(request), idempotencyKey);
 
-    public async Task SendAsync(IRequest request)
-    {
-        await using var scope = _services!.CreateAsyncScope();
-        await scope.ServiceProvider.GetRequiredService<ISender>().Send(request);
-    }
+    public Task SendAsync(IRequest request, string? idempotencyKey = null) =>
+        InScopeAsync(async services =>
+        {
+            await services.GetRequiredService<ISender>().Send(request);
+            return true;
+        }, idempotencyKey);
 
     /// <summary>Runs <paramref name="action"/> with the services of one request scope.</summary>
-    public async Task<T> InScopeAsync<T>(Func<IServiceProvider, Task<T>> action)
+    public async Task<T> InScopeAsync<T>(Func<IServiceProvider, Task<T>> action, string? idempotencyKey = null)
     {
         await using var scope = _services!.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<TestIdempotencyContext>().Key = idempotencyKey ?? Guid.NewGuid().ToString();
         return await action(scope.ServiceProvider);
     }
 
@@ -107,9 +113,17 @@ public sealed class ConcurrencyFixture : IAsyncLifetime
         await db.SaveChangesAsync();
     }
 
+    // The key each scope sends, like the Idempotency-Key header of one HTTP request.
+    private sealed class TestIdempotencyContext : IIdempotencyContext
+    {
+        public string? Key { get; set; }
+    }
+
     // These tests exercise concurrency, not access control, so they run as an admin.
     private sealed class AdminUser : ICurrentUser
     {
+        public bool IsAuthenticated => true;
+
         public Guid UserId { get; } = Guid.NewGuid();
 
         public bool IsAdmin => true;

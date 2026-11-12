@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using LedgerCore.Application.Abstractions.Authentication;
+using LedgerCore.Application.Abstractions.Idempotency;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 
@@ -29,12 +30,18 @@ public sealed class ApiFactory(string connectionString) : WebApplicationFactory<
     public async Task<HttpClient> CreateUserClientAsync()
     {
         var email = $"{Guid.NewGuid():N}@test.local";
-        var client = CreateClient();
+        var client = CreateClientWithIdempotencyKeys();
         (await client.PostAsJsonAsync("/api/auth/register", new { email, password = Password })).EnsureSuccessStatusCode();
         return await AuthenticateAsync(client, email);
     }
 
-    public Task<HttpClient> CreateAdminClientAsync() => AuthenticateAsync(CreateClient(), AdminEmail);
+    public Task<HttpClient> CreateAdminClientAsync() => AuthenticateAsync(CreateClientWithIdempotencyKeys(), AdminEmail);
+
+    /// <summary>
+    /// A client that adds a fresh Idempotency-Key to every POST that has none, like a well-behaved
+    /// client would. Tests that check idempotency set the header themselves.
+    /// </summary>
+    public HttpClient CreateClientWithIdempotencyKeys() => CreateDefaultClient(new IdempotencyKeyHandler());
 
     private static async Task<HttpClient> AuthenticateAsync(HttpClient client, string email)
     {
@@ -44,5 +51,18 @@ public sealed class ApiFactory(string connectionString) : WebApplicationFactory<
 
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token!.Token);
         return client;
+    }
+}
+
+internal sealed class IdempotencyKeyHandler : DelegatingHandler
+{
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        if (request.Method == HttpMethod.Post && !request.Headers.Contains(IIdempotencyContext.HeaderName))
+        {
+            request.Headers.Add(IIdempotencyContext.HeaderName, Guid.NewGuid().ToString());
+        }
+
+        return base.SendAsync(request, cancellationToken);
     }
 }
