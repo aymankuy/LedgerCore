@@ -67,6 +67,7 @@ In Swagger: call `POST /api/auth/login`, copy the `token`, click **Authorize** a
 | GET | `/api/accounts/{id}/statement?from=&to=` | Entries with running balance, default last 30 days |
 | POST | `/api/accounts/{id}/deposits`, `/withdrawals` | Money in and out through the settlement account |
 | POST | `/api/transfers` | Between customer accounts |
+| POST | `/api/accounts/{id}/freeze`, `/unfreeze` | Admin only: block or allow money movements on an account |
 
 Errors are RFC 7807 ProblemDetails with a stable `code` and the request's `correlationId`: 400 invalid input, 401 not authenticated, 404 not found **or not yours**, 409 conflict, 422 business rule (for example `insufficient_funds`).
 

@@ -1,10 +1,12 @@
 using LedgerCore.Application.Abstractions.Authentication;
+using LedgerCore.Application.Accounts.Freeze;
 using LedgerCore.Application.Accounts.GetBalance;
 using LedgerCore.Application.Accounts.GetStatement;
 using LedgerCore.Application.Accounts.ListAccounts;
 using LedgerCore.Application.Accounts.OpenAccount;
 using LedgerCore.Application.Ledger.Deposit;
 using LedgerCore.Application.Ledger.Withdraw;
+using LedgerCore.Domain.Users;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -86,6 +88,32 @@ public sealed class AccountsController(ISender sender, ICurrentUser currentUser,
         var transactionId = await sender.Send(
             new WithdrawCommand(accountId, request.Amount, request.ReferenceId, request.Description), cancellationToken);
         return StatusCode(StatusCodes.Status201Created, new TransactionCreatedResponse(transactionId));
+    }
+
+    /// <summary>Admin only. Blocks every money movement on the account until it is unfrozen.</summary>
+    [HttpPost("{accountId:guid}/freeze")]
+    [Authorize(Roles = nameof(UserRole.Admin))]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> Freeze(Guid accountId, CancellationToken cancellationToken)
+    {
+        await sender.Send(new SetAccountFrozenCommand(accountId, Frozen: true), cancellationToken);
+        return NoContent();
+    }
+
+    /// <summary>Admin only.</summary>
+    [HttpPost("{accountId:guid}/unfreeze")]
+    [Authorize(Roles = nameof(UserRole.Admin))]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> Unfreeze(Guid accountId, CancellationToken cancellationToken)
+    {
+        await sender.Send(new SetAccountFrozenCommand(accountId, Frozen: false), cancellationToken);
+        return NoContent();
     }
 }
 

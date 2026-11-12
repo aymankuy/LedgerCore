@@ -1,5 +1,6 @@
 using System.Data;
 using LedgerCore.Application.Abstractions.Persistence;
+using LedgerCore.Application.Common;
 using LedgerCore.Domain.Accounts;
 using LedgerCore.Domain.Common;
 using LedgerCore.Domain.Ledger;
@@ -18,7 +19,18 @@ public sealed class LedgerDbContext(DbContextOptions<LedgerDbContext> options) :
     public DbSet<IdempotencyRecord> IdempotencyKeys => Set<IdempotencyRecord>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
-    Task IUnitOfWork.SaveChangesAsync(CancellationToken cancellationToken) => SaveChangesAsync(cancellationToken);
+    async Task IUnitOfWork.SaveChangesAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // The row's RowVersion no longer matches the one we read: someone else changed it first.
+            throw new ConflictException("The record was changed by another request. Reload it and try again.");
+        }
+    }
 
     async Task<T> IUnitOfWork.ExecuteInTransactionAsync<T>(Func<Task<T>> work, CancellationToken cancellationToken)
     {

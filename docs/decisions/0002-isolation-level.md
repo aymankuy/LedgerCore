@@ -88,3 +88,18 @@ Only error 1205 is retried. Business errors such as insufficient funds are not, 
 running them again gives the same answer. A test forces a real deadlock between two
 transactions and shows that both commit, with exactly one retry; without the retry, the
 deadlock reaches the caller.
+
+## Account status changes: optimistic, on `RowVersion`
+
+Freezing and unfreezing an account (admin only) is rare and never hot, so it takes no lock.
+The handler reads the account, changes its status and saves. EF Core adds
+`WHERE RowVersion = @read` to the `UPDATE`, so if another request changed the account in
+between, no row matches and the API returns 409 instead of overwriting that change.
+
+A test fires 20 parallel freezes at one account: exactly one succeeds, and the others get a
+409 or, if they read after the winner committed, a 422 for an invalid transition. With the
+`RowVersion` check disabled, two of the twenty succeeded in each of three runs.
+
+A status change and a money movement on the same account do not race either: the
+`UPDATE` needs an exclusive lock on the row, so it waits for any movement holding the
+update lock, and a movement that starts later sees the new status.

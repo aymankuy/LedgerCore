@@ -63,6 +63,27 @@ public sealed class AccountsApiTests(SqlServerFixture fixture)
     }
 
     [Fact]
+    public async Task Only_an_admin_can_freeze_and_a_frozen_account_cannot_move_money()
+    {
+        var alice = await Api.CreateUserClientAsync();
+        var aliceAccount = await OpenFundedAccountAsync(alice, 100m);
+        var admin = await Api.CreateAdminClientAsync();
+
+        var byOwner = await alice.PostAsync($"/api/accounts/{aliceAccount}/freeze", content: null);
+        var byAdmin = await admin.PostAsync($"/api/accounts/{aliceAccount}/freeze", content: null);
+        var whileFrozen = await alice.PostAsJsonAsync($"/api/accounts/{aliceAccount}/withdrawals", new { amount = 10m });
+        var unfreeze = await admin.PostAsync($"/api/accounts/{aliceAccount}/unfreeze", content: null);
+        var afterUnfreeze = await alice.PostAsJsonAsync($"/api/accounts/{aliceAccount}/withdrawals", new { amount = 10m });
+
+        byOwner.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        byAdmin.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        whileFrozen.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        (await ProblemCodeAsync(whileFrozen)).Should().Be("account_not_active");
+        unfreeze.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        afterUnfreeze.StatusCode.Should().Be(HttpStatusCode.Created);
+    }
+
+    [Fact]
     public async Task Transferring_more_than_the_balance_returns_422()
     {
         var alice = await Api.CreateUserClientAsync();

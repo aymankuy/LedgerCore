@@ -61,6 +61,12 @@ public sealed class ConcurrencyFixture : IAsyncLifetime
         return await scope.ServiceProvider.GetRequiredService<ISender>().Send(request);
     }
 
+    public async Task SendAsync(IRequest request)
+    {
+        await using var scope = _services!.CreateAsyncScope();
+        await scope.ServiceProvider.GetRequiredService<ISender>().Send(request);
+    }
+
     /// <summary>Runs <paramref name="action"/> with the services of one request scope.</summary>
     public async Task<T> InScopeAsync<T>(Func<IServiceProvider, Task<T>> action)
     {
