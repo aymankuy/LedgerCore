@@ -62,3 +62,22 @@ Accounts, users, idempotency keys and outbox messages are still written through 
   Rejected: violates spec rule 3. Reconciliation detects a problem after the fact; it does
   not prevent it.
 - **A deferred check (validate at commit).** Not available in SQL Server.
+
+## Amendment: the trigger must seek only its own rows (2026-11-12, Phase 2)
+
+The first concurrency tests (100 parallel withdrawals, reciprocal transfers) failed with
+deadlocks before any balance logic was involved. The deadlock graph showed two
+`usp_PostLedgerTransaction` calls, each inside `TR_LedgerEntries_NetZero`. Each held an
+`X` lock on the key it had just inserted into `IX_LedgerEntries_TransactionId` and waited
+for an `S` lock on the other's key. The trigger's `WHERE TransactionId IN (...)` let the
+optimizer scan that index, so it read rows of other uncommitted transactions.
+
+Fix, in migration `MakeNetZeroTriggerSeekOnly`:
+
+- `IX_LedgerEntries_TransactionId` now includes `Direction` and `Amount`, so the trigger
+  reads everything it needs from that index and never looks up the clustered index.
+- The trigger joins the distinct inserted transaction ids to `LedgerEntries` with
+  `FORCESEEK`. It only touches rows of its own transaction, which it already holds.
+
+With the fix, the same tests ran five times without a deadlock, and the withdrawal test
+then exposed the real Phase 2 problem: the account was overdrawn.
