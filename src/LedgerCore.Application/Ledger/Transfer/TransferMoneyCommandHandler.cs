@@ -15,13 +15,23 @@ public sealed class TransferMoneyCommandHandler(
     public Task<Guid> Handle(TransferMoneyCommand command, CancellationToken cancellationToken) =>
         unitOfWork.ExecuteInTransactionAsync(async () =>
         {
-            // Only the source is balance-checked, so only the source is locked for now.
-            // Deterministic lock ordering of both accounts follows in the next step.
-            var source = await accounts.GetByIdForUpdateAsync(command.SourceAccountId, cancellationToken)
-                ?? throw new NotFoundException(nameof(Account), command.SourceAccountId);
+            // Both accounts are locked: the source because its balance is checked, the destination
+            // so its status cannot change while money moves into it. They are always locked in
+            // ascending id order. If A -> B locked A first and B -> A locked B first, each would
+            // wait for the other forever (ADR 0002).
+            var (first, second) = command.SourceAccountId.CompareTo(command.DestinationAccountId) < 0
+                ? (command.SourceAccountId, command.DestinationAccountId)
+                : (command.DestinationAccountId, command.SourceAccountId);
 
-            var destination = await accounts.GetByIdAsync(command.DestinationAccountId, cancellationToken)
-                ?? throw new NotFoundException(nameof(Account), command.DestinationAccountId);
+            var firstAccount = await accounts.GetByIdForUpdateAsync(first, cancellationToken)
+                ?? throw new NotFoundException(nameof(Account), first);
+
+            var secondAccount = await accounts.GetByIdForUpdateAsync(second, cancellationToken)
+                ?? throw new NotFoundException(nameof(Account), second);
+
+            var (source, destination) = first == command.SourceAccountId
+                ? (firstAccount, secondAccount)
+                : (secondAccount, firstAccount);
 
             var sourceBalance = await ledger.GetBalanceAsync(source.Id, cancellationToken);
 

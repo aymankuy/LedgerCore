@@ -55,6 +55,22 @@ protected together.
 - Correctness does not depend on the database default. Azure SQL enables
   `READ_COMMITTED_SNAPSHOT` by default; the lock still serializes writers, and the balance
   is read after the lock is granted, so it includes every movement committed before it.
-- A transfer locks the source account only, so it cannot deadlock on account rows yet. When
-  both accounts are locked, they must be locked in a fixed order (next decision in this
-  phase).
+
+## Transfers: both accounts, in ascending id order
+
+A transfer locks both accounts: the source because its balance is checked, and the
+destination so that its status cannot change while money moves into it. Two transfers in
+opposite directions that each lock their source first wait for each other forever. The
+reciprocal transfer test showed exactly that: with source-first locking, three runs out of
+three ended in a deadlock.
+
+So every transfer locks the account with the lower id first, whatever the direction. Two
+transfers between the same accounts then queue on the same first row and can never hold
+one lock each. The order only has to be the same everywhere; it is the .NET `Guid`
+comparison, which differs from SQL Server's `uniqueidentifier` sort order, and that does not
+matter.
+
+The cost is that incoming transfers to one hot account, such as a merchant receiving many
+payments, are serialized as well. If that becomes a bottleneck, the destination could take a
+shared lock held to commit (`HOLDLOCK` without `UPDLOCK`). Shared locks do not block each
+other, but they still block a concurrent status change.
