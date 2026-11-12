@@ -10,6 +10,7 @@ namespace LedgerCore.UnitTests.Application;
 
 public class WithdrawCommandHandlerTests
 {
+    private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly IAccountRepository _accounts = Substitute.For<IAccountRepository>();
     private readonly ILedgerRepository _ledger = Substitute.For<ILedgerRepository>();
     private readonly TimeProvider _time = Substitute.For<TimeProvider>();
@@ -21,9 +22,13 @@ public class WithdrawCommandHandlerTests
     public WithdrawCommandHandlerTests()
     {
         _time.GetUtcNow().Returns(new DateTimeOffset(TestAccounts.Now));
-        _accounts.GetByIdAsync(_customer.Id, Arg.Any<CancellationToken>()).Returns(_customer);
+        _accounts.GetByIdForUpdateAsync(_customer.Id, Arg.Any<CancellationToken>()).Returns(_customer);
         _accounts.GetSettlementAsync(_customer.Currency, Arg.Any<CancellationToken>()).Returns(_settlement);
-        _handler = new WithdrawCommandHandler(_accounts, _ledger, _time);
+        _handler = new WithdrawCommandHandler(_unitOfWork, _accounts, _ledger, _time);
+
+        // Runs the work directly, as a real transaction would before committing.
+        _unitOfWork.ExecuteInTransactionAsync(Arg.Any<Func<Task<Guid>>>(), Arg.Any<CancellationToken>())
+            .Returns(call => call.Arg<Func<Task<Guid>>>()());
     }
 
     [Fact]
@@ -51,6 +56,18 @@ public class WithdrawCommandHandlerTests
 
         await act.Should().ThrowAsync<InsufficientFundsException>();
         await _ledger.DidNotReceiveWithAnyArgs().PostAsync(default!, default);
+    }
+
+    [Fact]
+    public async Task Handle_locks_the_account_inside_one_transaction()
+    {
+        _ledger.GetBalanceAsync(_customer.Id, Arg.Any<CancellationToken>()).Returns(100m);
+
+        await _handler.Handle(new WithdrawCommand(_customer.Id, 40m), CancellationToken.None);
+
+        await _unitOfWork.Received(1).ExecuteInTransactionAsync(Arg.Any<Func<Task<Guid>>>(), Arg.Any<CancellationToken>());
+        await _accounts.Received(1).GetByIdForUpdateAsync(_customer.Id, Arg.Any<CancellationToken>());
+        await _accounts.DidNotReceiveWithAnyArgs().GetByIdAsync(default, default);
     }
 
     [Fact]

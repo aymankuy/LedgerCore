@@ -1,3 +1,4 @@
+using System.Data;
 using LedgerCore.Application.Abstractions.Persistence;
 using LedgerCore.Domain.Accounts;
 using LedgerCore.Domain.Common;
@@ -18,6 +19,16 @@ public sealed class LedgerDbContext(DbContextOptions<LedgerDbContext> options) :
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
 
     Task IUnitOfWork.SaveChangesAsync(CancellationToken cancellationToken) => SaveChangesAsync(cancellationToken);
+
+    async Task<T> IUnitOfWork.ExecuteInTransactionAsync<T>(Func<Task<T>> work, CancellationToken cancellationToken)
+    {
+        // READ COMMITTED on purpose: correctness comes from the explicit row lock on the account,
+        // not from a stricter isolation level (ADR 0002). Disposing without commit rolls back.
+        await using var transaction = await Database.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken);
+        var result = await work();
+        await transaction.CommitAsync(cancellationToken);
+        return result;
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
