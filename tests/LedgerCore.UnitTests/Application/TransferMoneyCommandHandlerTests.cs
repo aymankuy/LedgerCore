@@ -10,6 +10,7 @@ namespace LedgerCore.UnitTests.Application;
 
 public class TransferMoneyCommandHandlerTests
 {
+    private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly IAccountRepository _accounts = Substitute.For<IAccountRepository>();
     private readonly ILedgerRepository _ledger = Substitute.For<ILedgerRepository>();
     private readonly TimeProvider _time = Substitute.For<TimeProvider>();
@@ -21,9 +22,13 @@ public class TransferMoneyCommandHandlerTests
     public TransferMoneyCommandHandlerTests()
     {
         _time.GetUtcNow().Returns(new DateTimeOffset(TestAccounts.Now));
-        _accounts.GetByIdAsync(_source.Id, Arg.Any<CancellationToken>()).Returns(_source);
-        _accounts.GetByIdAsync(_destination.Id, Arg.Any<CancellationToken>()).Returns(_destination);
-        _handler = new TransferMoneyCommandHandler(_accounts, _ledger, _time);
+        _accounts.GetByIdForUpdateAsync(_source.Id, Arg.Any<CancellationToken>()).Returns(_source);
+        _accounts.GetByIdForUpdateAsync(_destination.Id, Arg.Any<CancellationToken>()).Returns(_destination);
+        _handler = new TransferMoneyCommandHandler(_unitOfWork, _accounts, _ledger, _time);
+
+        // Runs the work directly, as a real transaction would before committing.
+        _unitOfWork.ExecuteInTransactionAsync(Arg.Any<Func<Task<Guid>>>(), Arg.Any<CancellationToken>())
+            .Returns(call => call.Arg<Func<Task<Guid>>>()());
     }
 
     [Fact]
@@ -63,6 +68,25 @@ public class TransferMoneyCommandHandlerTests
 
         await act.Should().ThrowAsync<NotFoundException>();
         await _ledger.DidNotReceiveWithAnyArgs().PostAsync(default!, default);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Handle_locks_both_accounts_in_ascending_id_order_whatever_the_direction(bool sourceFirst)
+    {
+        var (from, to) = sourceFirst ? (_source, _destination) : (_destination, _source);
+        _ledger.GetBalanceAsync(from.Id, Arg.Any<CancellationToken>()).Returns(100m);
+
+        await _handler.Handle(new TransferMoneyCommand(from.Id, to.Id, 10m), CancellationToken.None);
+
+        var lower = from.Id.CompareTo(to.Id) < 0 ? from.Id : to.Id;
+        var higher = lower == from.Id ? to.Id : from.Id;
+        Received.InOrder(() =>
+        {
+            _accounts.GetByIdForUpdateAsync(lower, Arg.Any<CancellationToken>());
+            _accounts.GetByIdForUpdateAsync(higher, Arg.Any<CancellationToken>());
+        });
     }
 
     [Fact]

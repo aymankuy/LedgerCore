@@ -7,33 +7,45 @@ using MediatR;
 namespace LedgerCore.Application.Ledger.Transfer;
 
 public sealed class TransferMoneyCommandHandler(
+    IUnitOfWork unitOfWork,
     IAccountRepository accounts,
     ILedgerRepository ledger,
     TimeProvider timeProvider) : IRequestHandler<TransferMoneyCommand, Guid>
 {
-    public async Task<Guid> Handle(TransferMoneyCommand command, CancellationToken cancellationToken)
-    {
-        var source = await accounts.GetByIdAsync(command.SourceAccountId, cancellationToken)
-            ?? throw new NotFoundException(nameof(Account), command.SourceAccountId);
+    public Task<Guid> Handle(TransferMoneyCommand command, CancellationToken cancellationToken) =>
+        unitOfWork.ExecuteInTransactionAsync(async () =>
+        {
+            // Both accounts are locked: the source because its balance is checked, the destination
+            // so its status cannot change while money moves into it. They are always locked in
+            // ascending id order. If A -> B locked A first and B -> A locked B first, each would
+            // wait for the other forever (ADR 0002).
+            var (first, second) = command.SourceAccountId.CompareTo(command.DestinationAccountId) < 0
+                ? (command.SourceAccountId, command.DestinationAccountId)
+                : (command.DestinationAccountId, command.SourceAccountId);
 
-        var destination = await accounts.GetByIdAsync(command.DestinationAccountId, cancellationToken)
-            ?? throw new NotFoundException(nameof(Account), command.DestinationAccountId);
+            var firstAccount = await accounts.GetByIdForUpdateAsync(first, cancellationToken)
+                ?? throw new NotFoundException(nameof(Account), first);
 
-        // Deliberately naive for Phase 1, like withdrawals: no lock, no isolation level and no
-        // lock ordering yet. Phase 2 adds all three and the tests that prove they are needed.
-        var sourceBalance = await ledger.GetBalanceAsync(source.Id, cancellationToken);
+            var secondAccount = await accounts.GetByIdForUpdateAsync(second, cancellationToken)
+                ?? throw new NotFoundException(nameof(Account), second);
 
-        var transaction = LedgerTransaction.Transfer(
-            source,
-            sourceBalance,
-            destination,
-            command.Amount,
-            timeProvider.GetUtcNow().UtcDateTime,
-            command.ReferenceId,
-            command.Description);
+            var (source, destination) = first == command.SourceAccountId
+                ? (firstAccount, secondAccount)
+                : (secondAccount, firstAccount);
 
-        await ledger.PostAsync(transaction, cancellationToken);
+            var sourceBalance = await ledger.GetBalanceAsync(source.Id, cancellationToken);
 
-        return transaction.Id;
-    }
+            var transaction = LedgerTransaction.Transfer(
+                source,
+                sourceBalance,
+                destination,
+                command.Amount,
+                timeProvider.GetUtcNow().UtcDateTime,
+                command.ReferenceId,
+                command.Description);
+
+            await ledger.PostAsync(transaction, cancellationToken);
+
+            return transaction.Id;
+        }, cancellationToken);
 }

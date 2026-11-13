@@ -55,4 +55,21 @@ public sealed class PlatformApiTests(SqlServerFixture fixture)
         document.GetProperty("paths").TryGetProperty("/api/transfers", out _).Should().BeTrue();
         document.GetProperty("components").GetProperty("securitySchemes").TryGetProperty("Bearer", out _).Should().BeTrue();
     }
+
+    [Fact]
+    public async Task Swagger_shows_the_idempotency_header_on_every_post_except_login()
+    {
+        var document = await fixture.Api.CreateClient().GetFromJsonAsync<JsonElement>("/swagger/v1/swagger.json");
+
+        var posts = document.GetProperty("paths").EnumerateObject()
+            .Where(path => path.Value.TryGetProperty("post", out _))
+            .ToDictionary(
+                path => path.Name,
+                path => path.Value.GetProperty("post").TryGetProperty("parameters", out var parameters)
+                    && parameters.EnumerateArray().Any(p => p.GetProperty("name").GetString() == "Idempotency-Key"));
+
+        posts.Should().ContainKey("/api/transfers");
+        posts.Where(p => p.Key != "/api/auth/login").Should().OnlyContain(p => p.Value);
+        posts["/api/auth/login"].Should().BeFalse();
+    }
 }

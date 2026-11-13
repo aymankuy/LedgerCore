@@ -1,5 +1,6 @@
 using LedgerCore.Application;
 using LedgerCore.Application.Abstractions.Authentication;
+using LedgerCore.Application.Abstractions.Idempotency;
 using LedgerCore.Application.Accounts.OpenAccount;
 using LedgerCore.Domain.Accounts;
 using LedgerCore.Domain.Common;
@@ -32,6 +33,9 @@ public sealed class LedgerTestApp(SqlServerFixture fixture)
         // These tests exercise the handlers, not access control, so they run as an admin.
         // Ownership is covered by the HTTP tests.
         services.AddSingleton<ICurrentUser>(new AdminUser());
+
+        // Every call is a new request with its own key; idempotency itself is tested elsewhere.
+        services.AddSingleton<IIdempotencyContext>(new FixedIdempotencyContext(Guid.NewGuid().ToString()));
 
         if (utcNow is { } now)
         {
@@ -74,8 +78,12 @@ public sealed class LedgerTestApp(SqlServerFixture fixture)
         await db.SaveChangesAsync();
     }
 
+    private sealed record FixedIdempotencyContext(string? Key) : IIdempotencyContext;
+
     private sealed class AdminUser : ICurrentUser
     {
+        public bool IsAuthenticated => true;
+
         public Guid UserId { get; } = Guid.NewGuid();
 
         public bool IsAdmin => true;

@@ -105,6 +105,8 @@ namespace LedgerCore.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("TransactionId");
 
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("TransactionId"), new[] { "Direction", "Amount" });
+
                     b.ToTable("LedgerEntries", null, t =>
                         {
                             t.HasCheckConstraint("CK_LedgerEntries_Amount", "[Amount] > 0");

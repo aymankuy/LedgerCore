@@ -1,8 +1,10 @@
 using LedgerCore.Api.Authentication;
 using LedgerCore.Api.ErrorHandling;
+using LedgerCore.Api.Idempotency;
 using LedgerCore.Api.Logging;
 using LedgerCore.Api.OpenApi;
 using LedgerCore.Application;
+using LedgerCore.Application.Abstractions.Idempotency;
 using LedgerCore.Infrastructure;
 using LedgerCore.Infrastructure.Persistence.Seeding;
 using Serilog;
@@ -25,6 +27,7 @@ builder.Services.AddApplication();
 builder.Services.AddInfrastructure(connectionString);
 builder.Services.Configure<DatabaseOptions>(builder.Configuration.GetSection(DatabaseOptions.SectionName));
 builder.Services.AddJwtAuthentication(builder.Configuration);
+builder.Services.AddScoped<IIdempotencyContext, HttpIdempotencyContext>();
 
 builder.Services.AddControllers();
 builder.Services.AddLedgerSwagger();

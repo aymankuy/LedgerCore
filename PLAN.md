@@ -2,14 +2,14 @@
 
 Working notes for picking the project up again. The spec is [CLAUDE.md](CLAUDE.md); this file records where we are against it and how Phase 2 will be done.
 
-Last updated: 2026-11-12. State: `main` at `c285aa3`, in sync with [github.com/aymankuy/LedgerCore](https://github.com/aymankuy/LedgerCore). CI is green.
+Last updated: 2026-11-13. State: Phase 2 is complete on the `phase-2` branch and waits for its merge into `main` on [github.com/aymankuy/LedgerCore](https://github.com/aymankuy/LedgerCore).
 
 ## Status by phase
 
 | Phase | Status |
 |---|---|
 | 1. Core | **Done.** All acceptance criteria verified (see below). |
-| 2. Correctness under concurrency | **Next.** We do this phase together. |
+| 2. Correctness under concurrency | **Done** on `phase-2`. All acceptance criteria verified (see the checklist below). |
 | 3. Architecture (CQRS, behaviours, outbox, fee strategy) | Partly started: CQRS split and two pipeline behaviours already exist. |
 | 4. Performance (10M rows, snapshots, indexes) | Not started |
 | 5. Cloud (Azure, Bicep, Key Vault, Function) | Not started |
@@ -129,13 +129,21 @@ Where it lives: an action filter or middleware on write endpoints, plus a store 
 
 ### Phase 2 acceptance checklist
 
-- [ ] Concurrency tests run against a real SQL Server through Testcontainers, with no in-memory provider.
-- [ ] 100 parallel withdrawals: the balance never goes negative, and exactly the expected number succeed.
-- [ ] Reciprocal transfers: no deadlock reaches the caller.
-- [ ] Same idempotency key 50 times in parallel: money moves exactly once.
-- [ ] Suite passes 20 consecutive runs.
-- [ ] `docs/decisions/0002-isolation-level.md` written.
-- [ ] README shows the naive version failing and the fixed version passing.
+- [x] Concurrency tests run against a real SQL Server through Testcontainers, with no in-memory provider.
+- [x] 100 parallel withdrawals: the balance never goes negative, and exactly the expected number succeed.
+- [x] Reciprocal transfers: no deadlock reaches the caller.
+- [x] Same idempotency key 50 times in parallel: money moves exactly once.
+- [x] Suite passes 20 consecutive runs.
+- [x] `docs/decisions/0002-isolation-level.md` written.
+- [x] README shows the naive version failing and the fixed version passing.
+
+### Phase 2 outcome (2026-11-13)
+
+- All five steps are done, each with tests written before the fix. The README shows the before/after table.
+- An unplanned find: the Phase 1 net-zero trigger deadlocked under parallel posts. Fixed with a covering index and a seek-only trigger (ADR 0001 amendment).
+- Added beyond the original plan: an admin freeze/unfreeze endpoint, so `Accounts.RowVersion` has a real use (ADR 0002).
+- Carried to Phase 3: a Worker job that deletes idempotency keys older than 24 hours. The `IdempotencyKeys.StatusCode` column stays empty by design (ADR 0005).
+- Verified: 20 consecutive runs of the concurrency suite, and `docker compose up --build` from a fresh clone of `phase-2`, with Swagger, replay, 409 and 400 checked by hand.
 
 ## How we work
 
