@@ -1,0 +1,1109 @@
+<ShowPlanXML xmlns="http://schemas.microsoft.com/sqlserver/2004/07/showplan" Version="1.564" Build="16.0.4305.5">
+  <BatchSequence>
+    <Batch>
+      <Statements>
+        <StmtSimple StatementText="DECLARE @OpeningBalance decimal(19, 4) =&#xA;    (SELECT COALESCE(SUM(CASE Direction WHEN 2 THEN Amount ELSE -Amount END), 0)&#xA;     FROM dbo.LedgerEntries&#xA;     WHERE AccountId = @AccountId AND CreatedAtUtc &lt; @FromUtc)" StatementId="1" StatementCompId="1" StatementType="SELECT" StatementSqlHandle="0x0900D3019D5EA4A2BB20EBDBAA81B295E20F0000000000000000000000000000000000000000000000000000" DatabaseContextSettingsId="2" ParentObjectId="0" StatementParameterizationType="1" RetrievedFromCache="true" StatementSubTreeCost="75.9784" StatementEstRows="1" SecurityPolicyApplied="false" StatementOptmLevel="FULL" QueryHash="0xB491BD41FC56B150" QueryPlanHash="0x06B44C383252856A" CardinalityEstimationModelVersion="160">
+          <StatementSetOptions QUOTED_IDENTIFIER="true" ARITHABORT="false" CONCAT_NULL_YIELDS_NULL="true" ANSI_NULLS="true" ANSI_PADDING="true" ANSI_WARNINGS="true" NUMERIC_ROUNDABORT="false"></StatementSetOptions>
+          <QueryPlan DegreeOfParallelism="16" MemoryGrant="264" CachedPlanSize="40" CompileTime="223" CompileCPU="21" CompileMemory="568">
+            <ThreadStat Branches="1" UsedThreads="16">
+              <ThreadReservation NodeId="0" ReservedThreads="16"></ThreadReservation>
+            </ThreadStat>
+            <MissingIndexes>
+              <MissingIndexGroup Impact="99.9475">
+                <MissingIndex Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]">
+                  <ColumnGroup Usage="EQUALITY">
+                    <Column Name="[AccountId]" ColumnId="3"></Column>
+                  </ColumnGroup>
+                  <ColumnGroup Usage="INEQUALITY">
+                    <Column Name="[CreatedAtUtc]" ColumnId="6"></Column>
+                  </ColumnGroup>
+                  <ColumnGroup Usage="INCLUDE">
+                    <Column Name="[Direction]" ColumnId="4"></Column>
+                    <Column Name="[Amount]" ColumnId="5"></Column>
+                  </ColumnGroup>
+                </MissingIndex>
+              </MissingIndexGroup>
+            </MissingIndexes>
+            <MemoryGrantInfo SerialRequiredMemory="0" SerialDesiredMemory="0" RequiredMemory="264" DesiredMemory="264" RequestedMemory="264" GrantWaitTime="0" MaxQueryMemory="2058008" GrantedMemory="264" MaxUsedMemory="264"></MemoryGrantInfo>
+            <OptimizerHardwareDependentProperties EstimatedAvailableMemoryGrant="81228" EstimatedPagesCached="81228" EstimatedAvailableDegreeOfParallelism="8" MaxCompileMemory="8388216"></OptimizerHardwareDependentProperties>
+            <OptimizerStatsUsage>
+              <StatisticsInfo LastUpdate="2026-11-14T18:18:27.21" ModificationCount="0" SamplingPercent="2.02303" Statistics="[_WA_Sys_00000006_59063A47]" Table="[LedgerEntries]" Schema="[dbo]" Database="[LedgerCore]"></StatisticsInfo>
+              <StatisticsInfo LastUpdate="2026-11-14T18:17:59.87" ModificationCount="0" SamplingPercent="100" Statistics="[IX_LedgerEntries_TransactionId]" Table="[LedgerEntries]" Schema="[dbo]" Database="[LedgerCore]"></StatisticsInfo>
+              <StatisticsInfo LastUpdate="2026-11-14T18:17:56.57" ModificationCount="0" SamplingPercent="100" Statistics="[IX_LedgerEntries_AccountId]" Table="[LedgerEntries]" Schema="[dbo]" Database="[LedgerCore]"></StatisticsInfo>
+            </OptimizerStatsUsage>
+            <WaitStats>
+              <Wait WaitType="CXSYNC_PORT" WaitTimeMs="394" WaitCount="17"></Wait>
+              <Wait WaitType="SOS_SCHEDULER_YIELD" WaitTimeMs="73" WaitCount="817"></Wait>
+              <Wait WaitType="LATCH_EX" WaitTimeMs="14" WaitCount="20"></Wait>
+              <Wait WaitType="SESSION_WAIT_STATS_CHILDREN" WaitTimeMs="3" WaitCount="13"></Wait>
+              <Wait WaitType="LATCH_SH" WaitTimeMs="2" WaitCount="13"></Wait>
+            </WaitStats>
+            <QueryTimeStats ElapsedTime="278" CpuTime="4283"></QueryTimeStats>
+            <RelOp NodeId="0" PhysicalOp="Compute Scalar" LogicalOp="Compute Scalar" EstimateRows="1" EstimateIO="0" EstimateCPU="1e-07" AvgRowSize="16" EstimatedTotalSubtreeCost="75.9784" Parallel="0" EstimateRebinds="0" EstimateRewinds="0" EstimatedExecutionMode="Row">
+              <OutputList>
+                <ColumnReference Column="Expr1004"></ColumnReference>
+              </OutputList>
+              <ComputeScalar>
+                <DefinedValues>
+                  <DefinedValue>
+                    <ColumnReference Column="Expr1004"></ColumnReference>
+                    <ScalarOperator ScalarString="CONVERT_IMPLICIT(decimal(19,4),CASE WHEN [Expr1002] IS NOT NULL THEN [Expr1002] ELSE (0.0000) END,0)">
+                      <Convert DataType="decimal" Precision="19" Scale="4" Style="0" Implicit="1">
+                        <ScalarOperator>
+                          <IF>
+                            <Condition>
+                              <ScalarOperator>
+                                <Compare CompareOp="IS NOT">
+                                  <ScalarOperator>
+                                    <Identifier>
+                                      <ColumnReference Column="Expr1002"></ColumnReference>
+                                    </Identifier>
+                                  </ScalarOperator>
+                                  <ScalarOperator>
+                                    <Const ConstValue="NULL"></Const>
+                                  </ScalarOperator>
+                                </Compare>
+                              </ScalarOperator>
+                            </Condition>
+                            <Then>
+                              <ScalarOperator>
+                                <Identifier>
+                                  <ColumnReference Column="Expr1002"></ColumnReference>
+                                </Identifier>
+                              </ScalarOperator>
+                            </Then>
+                            <Else>
+                              <ScalarOperator>
+                                <Const ConstValue="(0.0000)"></Const>
+                              </ScalarOperator>
+                            </Else>
+                          </IF>
+                        </ScalarOperator>
+                      </Convert>
+                    </ScalarOperator>
+                  </DefinedValue>
+                </DefinedValues>
+                <RelOp NodeId="2" PhysicalOp="Compute Scalar" LogicalOp="Compute Scalar" EstimateRows="1" EstimateIO="0" EstimateCPU="1e-07" AvgRowSize="24" EstimatedTotalSubtreeCost="75.9784" Parallel="0" EstimateRebinds="0" EstimateRewinds="0" EstimatedExecutionMode="Row">
+                  <OutputList>
+                    <ColumnReference Column="Expr1002"></ColumnReference>
+                  </OutputList>
+                  <ComputeScalar>
+                    <DefinedValues>
+                      <DefinedValue>
+                        <ColumnReference Column="Expr1002"></ColumnReference>
+                        <ScalarOperator ScalarString="CASE WHEN [globalagg1009]=(0) THEN NULL ELSE [globalagg1011] END">
+                          <IF>
+                            <Condition>
+                              <ScalarOperator>
+                                <Compare CompareOp="EQ">
+                                  <ScalarOperator>
+                                    <Identifier>
+                                      <ColumnReference Column="globalagg1009"></ColumnReference>
+                                    </Identifier>
+                                  </ScalarOperator>
+                                  <ScalarOperator>
+                                    <Const ConstValue="(0)"></Const>
+                                  </ScalarOperator>
+                                </Compare>
+                              </ScalarOperator>
+                            </Condition>
+                            <Then>
+                              <ScalarOperator>
+                                <Const ConstValue="NULL"></Const>
+                              </ScalarOperator>
+                            </Then>
+                            <Else>
+                              <ScalarOperator>
+                                <Identifier>
+                                  <ColumnReference Column="globalagg1011"></ColumnReference>
+                                </Identifier>
+                              </ScalarOperator>
+                            </Else>
+                          </IF>
+                        </ScalarOperator>
+                      </DefinedValue>
+                    </DefinedValues>
+                    <RelOp NodeId="3" PhysicalOp="Stream Aggregate" LogicalOp="Aggregate" EstimateRows="1" EstimateIO="0" EstimateCPU="5.3e-06" AvgRowSize="32" EstimatedTotalSubtreeCost="75.9784" Parallel="0" EstimateRebinds="0" EstimateRewinds="0" EstimatedExecutionMode="Row">
+                      <OutputList>
+                        <ColumnReference Column="globalagg1009"></ColumnReference>
+                        <ColumnReference Column="globalagg1011"></ColumnReference>
+                      </OutputList>
+                      <RunTimeInformation>
+                        <RunTimeCountersPerThread Thread="0" ActualRows="1" Batches="0" ActualElapsedms="278" ActualCPUms="1" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                      </RunTimeInformation>
+                      <StreamAggregate>
+                        <DefinedValues>
+                          <DefinedValue>
+                            <ColumnReference Column="globalagg1009"></ColumnReference>
+                            <ScalarOperator ScalarString="SUM([partialagg1008])">
+                              <Aggregate Distinct="0" AggType="SUM">
+                                <ScalarOperator>
+                                  <Identifier>
+                                    <ColumnReference Column="partialagg1008"></ColumnReference>
+                                  </Identifier>
+                                </ScalarOperator>
+                              </Aggregate>
+                            </ScalarOperator>
+                          </DefinedValue>
+                          <DefinedValue>
+                            <ColumnReference Column="globalagg1011"></ColumnReference>
+                            <ScalarOperator ScalarString="SUM([partialagg1010])">
+                              <Aggregate Distinct="0" AggType="SUM">
+                                <ScalarOperator>
+                                  <Identifier>
+                                    <ColumnReference Column="partialagg1010"></ColumnReference>
+                                  </Identifier>
+                                </ScalarOperator>
+                              </Aggregate>
+                            </ScalarOperator>
+                          </DefinedValue>
+                        </DefinedValues>
+                        <RelOp NodeId="4" PhysicalOp="Parallelism" LogicalOp="Gather Streams" EstimateRows="8" EstimateIO="0" EstimateCPU="0.0285038" AvgRowSize="32" EstimatedTotalSubtreeCost="75.9784" Parallel="1" EstimateRebinds="0" EstimateRewinds="0" EstimatedExecutionMode="Row">
+                          <OutputList>
+                            <ColumnReference Column="partialagg1008"></ColumnReference>
+                            <ColumnReference Column="partialagg1010"></ColumnReference>
+                          </OutputList>
+                          <RunTimeInformation>
+                            <RunTimeCountersPerThread Thread="0" ActualRows="16" Batches="0" ActualElapsedms="278" ActualCPUms="0" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                          </RunTimeInformation>
+                          <Parallelism>
+                            <RelOp NodeId="5" PhysicalOp="Stream Aggregate" LogicalOp="Aggregate" EstimateRows="8" EstimateIO="0" EstimateCPU="0.00676581" AvgRowSize="32" EstimatedTotalSubtreeCost="75.9499" Parallel="1" EstimateRebinds="0" EstimateRewinds="0" EstimatedExecutionMode="Row">
+                              <OutputList>
+                                <ColumnReference Column="partialagg1008"></ColumnReference>
+                                <ColumnReference Column="partialagg1010"></ColumnReference>
+                              </OutputList>
+                              <RunTimeInformation>
+                                <RunTimeCountersPerThread Thread="16" ActualRows="1" Batches="0" ActualElapsedms="266" ActualCPUms="262" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                <RunTimeCountersPerThread Thread="15" ActualRows="1" Batches="0" ActualElapsedms="266" ActualCPUms="262" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                <RunTimeCountersPerThread Thread="14" ActualRows="1" Batches="0" ActualElapsedms="273" ActualCPUms="273" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                <RunTimeCountersPerThread Thread="13" ActualRows="1" Batches="0" ActualElapsedms="265" ActualCPUms="264" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                <RunTimeCountersPerThread Thread="12" ActualRows="1" Batches="0" ActualElapsedms="271" ActualCPUms="245" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                <RunTimeCountersPerThread Thread="11" ActualRows="1" Batches="0" ActualElapsedms="268" ActualCPUms="267" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                <RunTimeCountersPerThread Thread="10" ActualRows="1" Batches="0" ActualElapsedms="270" ActualCPUms="269" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                <RunTimeCountersPerThread Thread="9" ActualRows="1" Batches="0" ActualElapsedms="266" ActualCPUms="264" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                <RunTimeCountersPerThread Thread="8" ActualRows="1" Batches="0" ActualElapsedms="270" ActualCPUms="269" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                <RunTimeCountersPerThread Thread="7" ActualRows="1" Batches="0" ActualElapsedms="277" ActualCPUms="276" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                <RunTimeCountersPerThread Thread="6" ActualRows="1" Batches="0" ActualElapsedms="267" ActualCPUms="267" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                <RunTimeCountersPerThread Thread="5" ActualRows="1" Batches="0" ActualElapsedms="270" ActualCPUms="270" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                <RunTimeCountersPerThread Thread="4" ActualRows="1" Batches="0" ActualElapsedms="270" ActualCPUms="270" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                <RunTimeCountersPerThread Thread="3" ActualRows="1" Batches="0" ActualElapsedms="273" ActualCPUms="273" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                <RunTimeCountersPerThread Thread="2" ActualRows="1" Batches="0" ActualElapsedms="269" ActualCPUms="268" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                <RunTimeCountersPerThread Thread="1" ActualRows="1" Batches="0" ActualElapsedms="273" ActualCPUms="273" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                <RunTimeCountersPerThread Thread="0" ActualRows="0" Batches="0" ActualElapsedms="0" ActualCPUms="0" ActualEndOfScans="0" ActualExecutions="0" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                              </RunTimeInformation>
+                              <StreamAggregate>
+                                <DefinedValues>
+                                  <DefinedValue>
+                                    <ColumnReference Column="partialagg1008"></ColumnReference>
+                                    <ScalarOperator ScalarString="COUNT_BIG([Expr1006])">
+                                      <Aggregate Distinct="0" AggType="COUNT_BIG">
+                                        <ScalarOperator>
+                                          <Identifier>
+                                            <ColumnReference Column="Expr1006"></ColumnReference>
+                                          </Identifier>
+                                        </ScalarOperator>
+                                      </Aggregate>
+                                    </ScalarOperator>
+                                  </DefinedValue>
+                                  <DefinedValue>
+                                    <ColumnReference Column="partialagg1010"></ColumnReference>
+                                    <ScalarOperator ScalarString="SUM([Expr1006])">
+                                      <Aggregate Distinct="0" AggType="SUM">
+                                        <ScalarOperator>
+                                          <Identifier>
+                                            <ColumnReference Column="Expr1006"></ColumnReference>
+                                          </Identifier>
+                                        </ScalarOperator>
+                                      </Aggregate>
+                                    </ScalarOperator>
+                                  </DefinedValue>
+                                </DefinedValues>
+                                <RelOp NodeId="6" PhysicalOp="Compute Scalar" LogicalOp="Compute Scalar" EstimateRows="90204.1" EstimateIO="0" EstimateCPU="0.125" AvgRowSize="39" EstimatedTotalSubtreeCost="74.8431" Parallel="1" EstimateRebinds="0" EstimateRewinds="0" EstimatedExecutionMode="Row">
+                                  <OutputList>
+                                    <ColumnReference Column="Expr1006"></ColumnReference>
+                                  </OutputList>
+                                  <ComputeScalar>
+                                    <DefinedValues>
+                                      <DefinedValue>
+                                        <ColumnReference Column="Expr1006"></ColumnReference>
+                                        <ScalarOperator ScalarString="CASE WHEN [LedgerCore].[dbo].[LedgerEntries].[Direction]=(2) THEN [LedgerCore].[dbo].[LedgerEntries].[Amount] ELSE  -[LedgerCore].[dbo].[LedgerEntries].[Amount] END">
+                                          <IF>
+                                            <Condition>
+                                              <ScalarOperator>
+                                                <Compare CompareOp="EQ">
+                                                  <ScalarOperator>
+                                                    <Identifier>
+                                                      <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Column="Direction"></ColumnReference>
+                                                    </Identifier>
+                                                  </ScalarOperator>
+                                                  <ScalarOperator>
+                                                    <Const ConstValue="(2)"></Const>
+                                                  </ScalarOperator>
+                                                </Compare>
+                                              </ScalarOperator>
+                                            </Condition>
+                                            <Then>
+                                              <ScalarOperator>
+                                                <Identifier>
+                                                  <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Column="Amount"></ColumnReference>
+                                                </Identifier>
+                                              </ScalarOperator>
+                                            </Then>
+                                            <Else>
+                                              <ScalarOperator>
+                                                <Arithmetic Operation="MINUS">
+                                                  <ScalarOperator>
+                                                    <Identifier>
+                                                      <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Column="Amount"></ColumnReference>
+                                                    </Identifier>
+                                                  </ScalarOperator>
+                                                </Arithmetic>
+                                              </ScalarOperator>
+                                            </Else>
+                                          </IF>
+                                        </ScalarOperator>
+                                      </DefinedValue>
+                                    </DefinedValues>
+                                    <RelOp NodeId="7" PhysicalOp="Clustered Index Scan" LogicalOp="Clustered Index Scan" EstimateRows="90204.1" EstimatedRowsRead="1e+07" EstimateIO="73.3431" EstimateCPU="1.37502" AvgRowSize="40" EstimatedTotalSubtreeCost="74.7181" TableCardinality="1e+07" Parallel="1" EstimateRebinds="0" EstimateRewinds="0" EstimatedExecutionMode="Row">
+                                      <OutputList>
+                                        <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Column="Direction"></ColumnReference>
+                                        <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Column="Amount"></ColumnReference>
+                                      </OutputList>
+                                      <RunTimeInformation>
+                                        <RunTimeCountersPerThread Thread="16" ActualRows="5329" Batches="0" ActualElapsedms="260" ActualCPUms="257" ActualScans="1" ActualLogicalReads="6104" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="602364" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                        <RunTimeCountersPerThread Thread="15" ActualRows="5121" Batches="0" ActualElapsedms="259" ActualCPUms="256" ActualScans="1" ActualLogicalReads="6104" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="602364" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                        <RunTimeCountersPerThread Thread="14" ActualRows="5750" Batches="0" ActualElapsedms="266" ActualCPUms="266" ActualScans="1" ActualLogicalReads="6758" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="666903" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                        <RunTimeCountersPerThread Thread="13" ActualRows="5421" Batches="0" ActualElapsedms="259" ActualCPUms="258" ActualScans="1" ActualLogicalReads="6104" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="602364" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                        <RunTimeCountersPerThread Thread="12" ActualRows="4765" Batches="0" ActualElapsedms="267" ActualCPUms="241" ActualScans="1" ActualLogicalReads="5450" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="537825" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                        <RunTimeCountersPerThread Thread="11" ActualRows="5523" Batches="0" ActualElapsedms="261" ActualCPUms="261" ActualScans="1" ActualLogicalReads="6540" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="645390" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                        <RunTimeCountersPerThread Thread="10" ActualRows="5550" Batches="0" ActualElapsedms="267" ActualCPUms="266" ActualScans="1" ActualLogicalReads="6758" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="666903" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                        <RunTimeCountersPerThread Thread="9" ActualRows="5540" Batches="0" ActualElapsedms="263" ActualCPUms="261" ActualScans="1" ActualLogicalReads="6322" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="623877" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                        <RunTimeCountersPerThread Thread="8" ActualRows="4797" Batches="0" ActualElapsedms="265" ActualCPUms="264" ActualScans="1" ActualLogicalReads="5450" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="537825" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                        <RunTimeCountersPerThread Thread="7" ActualRows="6040" Batches="0" ActualElapsedms="263" ActualCPUms="262" ActualScans="1" ActualLogicalReads="7370" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="727902" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                        <RunTimeCountersPerThread Thread="6" ActualRows="5265" Batches="0" ActualElapsedms="262" ActualCPUms="261" ActualScans="1" ActualLogicalReads="5886" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="580851" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                        <RunTimeCountersPerThread Thread="5" ActualRows="5741" Batches="0" ActualElapsedms="267" ActualCPUms="267" ActualScans="1" ActualLogicalReads="6540" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="645390" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                        <RunTimeCountersPerThread Thread="4" ActualRows="5715" Batches="0" ActualElapsedms="264" ActualCPUms="264" ActualScans="1" ActualLogicalReads="6758" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="666903" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                        <RunTimeCountersPerThread Thread="3" ActualRows="5796" Batches="0" ActualElapsedms="269" ActualCPUms="268" ActualScans="1" ActualLogicalReads="6976" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="688416" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                        <RunTimeCountersPerThread Thread="2" ActualRows="5501" Batches="0" ActualElapsedms="265" ActualCPUms="265" ActualScans="1" ActualLogicalReads="6322" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="623877" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                        <RunTimeCountersPerThread Thread="1" ActualRows="5040" Batches="0" ActualElapsedms="270" ActualCPUms="269" ActualScans="1" ActualLogicalReads="5886" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="580852" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                        <RunTimeCountersPerThread Thread="0" ActualRows="0" Batches="0" ActualElapsedms="0" ActualCPUms="0" ActualScans="1" ActualLogicalReads="2" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualEndOfScans="0" ActualExecutions="0" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                      </RunTimeInformation>
+                                      <IndexScan Ordered="0" ForcedIndex="0" ForceScan="0" NoExpandHint="0" Storage="RowStore">
+                                        <DefinedValues>
+                                          <DefinedValue>
+                                            <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Column="Direction"></ColumnReference>
+                                          </DefinedValue>
+                                          <DefinedValue>
+                                            <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Column="Amount"></ColumnReference>
+                                          </DefinedValue>
+                                        </DefinedValues>
+                                        <Object Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Index="[PK_LedgerEntries]" IndexKind="Clustered" Storage="RowStore"></Object>
+                                        <Predicate>
+                                          <ScalarOperator ScalarString="[LedgerCore].[dbo].[LedgerEntries].[AccountId]=[@AccountId] AND [LedgerCore].[dbo].[LedgerEntries].[CreatedAtUtc]&lt;[@FromUtc]">
+                                            <Logical Operation="AND">
+                                              <ScalarOperator>
+                                                <Compare CompareOp="EQ">
+                                                  <ScalarOperator>
+                                                    <Identifier>
+                                                      <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Column="AccountId"></ColumnReference>
+                                                    </Identifier>
+                                                  </ScalarOperator>
+                                                  <ScalarOperator>
+                                                    <Identifier>
+                                                      <ColumnReference Column="@AccountId"></ColumnReference>
+                                                    </Identifier>
+                                                  </ScalarOperator>
+                                                </Compare>
+                                              </ScalarOperator>
+                                              <ScalarOperator>
+                                                <Compare CompareOp="LT">
+                                                  <ScalarOperator>
+                                                    <Identifier>
+                                                      <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Column="CreatedAtUtc"></ColumnReference>
+                                                    </Identifier>
+                                                  </ScalarOperator>
+                                                  <ScalarOperator>
+                                                    <Identifier>
+                                                      <ColumnReference Column="@FromUtc"></ColumnReference>
+                                                    </Identifier>
+                                                  </ScalarOperator>
+                                                </Compare>
+                                              </ScalarOperator>
+                                            </Logical>
+                                          </ScalarOperator>
+                                        </Predicate>
+                                      </IndexScan>
+                                    </RelOp>
+                                  </ComputeScalar>
+                                </RelOp>
+                              </StreamAggregate>
+                            </RelOp>
+                          </Parallelism>
+                        </RelOp>
+                      </StreamAggregate>
+                    </RelOp>
+                  </ComputeScalar>
+                </RelOp>
+              </ComputeScalar>
+            </RelOp>
+            <ParameterList>
+              <ColumnReference Column="@OpeningBalance" ParameterDataType="decimal(19,4)" ParameterRuntimeValue="(4432448.3800)"></ColumnReference>
+              <ColumnReference Column="@FromUtc" ParameterDataType="datetime2(7)" ParameterCompiledValue="'2026-10-14 23:21:06.3370000'" ParameterRuntimeValue="'2026-10-14 23:21:06.3370000'"></ColumnReference>
+              <ColumnReference Column="@AccountId" ParameterDataType="uniqueidentifier" ParameterCompiledValue="{guid'44DD4E6D-07C1-4175-8145-CE9AADA45067'}" ParameterRuntimeValue="{guid'44DD4E6D-07C1-4175-8145-CE9AADA45067'}"></ColumnReference>
+            </ParameterList>
+          </QueryPlan>
+        </StmtSimple>
+        <StmtSimple StatementText="SELECT Id AS AccountId, Currency, @OpeningBalance AS OpeningBalance&#xA;FROM dbo.Accounts&#xA;WHERE Id = @AccountId" StatementId="2" StatementCompId="2" StatementType="SELECT" StatementSqlHandle="0x0900ED5FE00FBF09E7916FE3152B72332CBC0000000000000000000000000000000000000000000000000000" DatabaseContextSettingsId="2" ParentObjectId="0" StatementParameterizationType="1" RetrievedFromCache="true" StatementSubTreeCost="0.0032831" StatementEstRows="1" SecurityPolicyApplied="false" StatementOptmLevel="TRIVIAL" QueryHash="0x584F021B2C5902D5" QueryPlanHash="0x2AD135DCD2AE4197" CardinalityEstimationModelVersion="160">
+          <StatementSetOptions QUOTED_IDENTIFIER="true" ARITHABORT="false" CONCAT_NULL_YIELDS_NULL="true" ANSI_NULLS="true" ANSI_PADDING="true" ANSI_WARNINGS="true" NUMERIC_ROUNDABORT="false"></StatementSetOptions>
+          <QueryPlan DegreeOfParallelism="1" CachedPlanSize="16" CompileTime="3" CompileCPU="2" CompileMemory="240">
+            <MemoryGrantInfo SerialRequiredMemory="0" SerialDesiredMemory="0" GrantedMemory="0" MaxUsedMemory="0"></MemoryGrantInfo>
+            <OptimizerHardwareDependentProperties EstimatedAvailableMemoryGrant="81228" EstimatedPagesCached="81228" EstimatedAvailableDegreeOfParallelism="8" MaxCompileMemory="8388216"></OptimizerHardwareDependentProperties>
+            <OptimizerStatsUsage>
+              <StatisticsInfo LastUpdate="2026-11-14T18:18:10.65" ModificationCount="0" SamplingPercent="100" Statistics="[PK_Accounts]" Table="[Accounts]" Schema="[dbo]" Database="[LedgerCore]"></StatisticsInfo>
+            </OptimizerStatsUsage>
+            <QueryTimeStats ElapsedTime="0" CpuTime="0"></QueryTimeStats>
+            <RelOp NodeId="0" PhysicalOp="Clustered Index Seek" LogicalOp="Clustered Index Seek" EstimateRows="1" EstimatedRowsRead="1" EstimateIO="0.003125" EstimateCPU="0.0001581" AvgRowSize="26" EstimatedTotalSubtreeCost="0.0032831" TableCardinality="50008" Parallel="0" EstimateRebinds="0" EstimateRewinds="0" EstimatedExecutionMode="Row">
+              <OutputList>
+                <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[Accounts]" Column="Id"></ColumnReference>
+                <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[Accounts]" Column="Currency"></ColumnReference>
+              </OutputList>
+              <RunTimeInformation>
+                <RunTimeCountersPerThread Thread="0" ActualRows="1" Batches="0" ActualElapsedms="0" ActualCPUms="0" ActualScans="0" ActualLogicalReads="3" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="1" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+              </RunTimeInformation>
+              <IndexScan Ordered="1" ScanDirection="FORWARD" ForcedIndex="0" ForceSeek="0" ForceScan="0" NoExpandHint="0" Storage="RowStore">
+                <DefinedValues>
+                  <DefinedValue>
+                    <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[Accounts]" Column="Id"></ColumnReference>
+                  </DefinedValue>
+                  <DefinedValue>
+                    <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[Accounts]" Column="Currency"></ColumnReference>
+                  </DefinedValue>
+                </DefinedValues>
+                <Object Database="[LedgerCore]" Schema="[dbo]" Table="[Accounts]" Index="[PK_Accounts]" IndexKind="Clustered" Storage="RowStore"></Object>
+                <SeekPredicates>
+                  <SeekPredicateNew>
+                    <SeekKeys>
+                      <Prefix ScanType="EQ">
+                        <RangeColumns>
+                          <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[Accounts]" Column="Id"></ColumnReference>
+                        </RangeColumns>
+                        <RangeExpressions>
+                          <ScalarOperator ScalarString="[@AccountId]">
+                            <Identifier>
+                              <ColumnReference Column="@AccountId"></ColumnReference>
+                            </Identifier>
+                          </ScalarOperator>
+                        </RangeExpressions>
+                      </Prefix>
+                    </SeekKeys>
+                  </SeekPredicateNew>
+                </SeekPredicates>
+              </IndexScan>
+            </RelOp>
+            <ParameterList>
+              <ColumnReference Column="@OpeningBalance" ParameterDataType="decimal(19,4)" ParameterRuntimeValue="(4432448.3800)"></ColumnReference>
+              <ColumnReference Column="@AccountId" ParameterDataType="uniqueidentifier" ParameterCompiledValue="{guid'44DD4E6D-07C1-4175-8145-CE9AADA45067'}" ParameterRuntimeValue="{guid'44DD4E6D-07C1-4175-8145-CE9AADA45067'}"></ColumnReference>
+            </ParameterList>
+          </QueryPlan>
+        </StmtSimple>
+        <StmtSimple StatementText="SELECT e.Id AS EntryId,&#xA;       e.TransactionId,&#xA;       t.Type,&#xA;       t.ReferenceId,&#xA;       t.Description,&#xA;       s.Amount,&#xA;       @OpeningBalance + SUM(s.Amount) OVER (ORDER BY e.CreatedAtUtc, e.Id ROWS UNBOUNDED PRECEDING) AS BalanceAfter,&#xA;       e.CreatedAtUtc&#xA;FROM dbo.LedgerEntries AS e&#xA;JOIN dbo.LedgerTransactions AS t ON t.Id = e.TransactionId&#xA;CROSS APPLY (SELECT CASE e.Direction WHEN 2 THEN e.Amount ELSE -e.Amount END AS Amount) AS s&#xA;WHERE e.AccountId = @AccountId&#xA;  AND e.CreatedAtUtc &gt;= @FromUtc&#xA;  AND e.CreatedAtUtc &lt; @ToUtc&#xA;ORDER BY e.CreatedAtUtc, e.Id" StatementId="3" StatementCompId="3" StatementType="SELECT" StatementSqlHandle="0x0900049A75FB52C215CF07941EBA525ACF9F0000000000000000000000000000000000000000000000000000" DatabaseContextSettingsId="2" ParentObjectId="0" StatementParameterizationType="1" RetrievedFromCache="true" StatementSubTreeCost="157.532" StatementEstRows="28372.5" SecurityPolicyApplied="false" StatementOptmLevel="FULL" QueryHash="0xE6DA84351A95EC84" QueryPlanHash="0x30688DA9BACB976D" CardinalityEstimationModelVersion="160">
+          <StatementSetOptions QUOTED_IDENTIFIER="true" ARITHABORT="false" CONCAT_NULL_YIELDS_NULL="true" ANSI_NULLS="true" ANSI_PADDING="true" ANSI_WARNINGS="true" NUMERIC_ROUNDABORT="false"></StatementSetOptions>
+          <QueryPlan DegreeOfParallelism="16" MemoryGrant="10752" CachedPlanSize="88" CompileTime="5" CompileCPU="5" CompileMemory="856">
+            <ThreadStat Branches="1" UsedThreads="16">
+              <ThreadReservation NodeId="0" ReservedThreads="16"></ThreadReservation>
+            </ThreadStat>
+            <MissingIndexes>
+              <MissingIndexGroup Impact="48.4431">
+                <MissingIndex Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]">
+                  <ColumnGroup Usage="EQUALITY">
+                    <Column Name="[AccountId]" ColumnId="3"></Column>
+                  </ColumnGroup>
+                  <ColumnGroup Usage="INEQUALITY">
+                    <Column Name="[CreatedAtUtc]" ColumnId="6"></Column>
+                  </ColumnGroup>
+                  <ColumnGroup Usage="INCLUDE">
+                    <Column Name="[TransactionId]" ColumnId="2"></Column>
+                    <Column Name="[Direction]" ColumnId="4"></Column>
+                    <Column Name="[Amount]" ColumnId="5"></Column>
+                  </ColumnGroup>
+                </MissingIndex>
+              </MissingIndexGroup>
+            </MissingIndexes>
+            <MemoryGrantInfo SerialRequiredMemory="512" SerialDesiredMemory="1536" RequiredMemory="9728" DesiredMemory="10752" RequestedMemory="10752" GrantWaitTime="0" MaxQueryMemory="2058008" GrantedMemory="10752" MaxUsedMemory="2360" LastRequestedMemory="10752" IsMemoryGrantFeedbackAdjusted="Yes: Stable"></MemoryGrantInfo>
+            <OptimizerHardwareDependentProperties EstimatedAvailableMemoryGrant="81228" EstimatedPagesCached="81228" EstimatedAvailableDegreeOfParallelism="8" MaxCompileMemory="8388216"></OptimizerHardwareDependentProperties>
+            <OptimizerStatsUsage>
+              <StatisticsInfo LastUpdate="2026-11-14T18:18:27.21" ModificationCount="0" SamplingPercent="2.02303" Statistics="[_WA_Sys_00000006_59063A47]" Table="[LedgerEntries]" Schema="[dbo]" Database="[LedgerCore]"></StatisticsInfo>
+              <StatisticsInfo LastUpdate="2026-11-14T18:18:10.64" ModificationCount="0" SamplingPercent="100" Statistics="[PK_LedgerTransactions]" Table="[LedgerTransactions]" Schema="[dbo]" Database="[LedgerCore]"></StatisticsInfo>
+              <StatisticsInfo LastUpdate="2026-11-14T18:17:59.87" ModificationCount="0" SamplingPercent="100" Statistics="[IX_LedgerEntries_TransactionId]" Table="[LedgerEntries]" Schema="[dbo]" Database="[LedgerCore]"></StatisticsInfo>
+              <StatisticsInfo LastUpdate="2026-11-14T18:17:56.57" ModificationCount="0" SamplingPercent="100" Statistics="[IX_LedgerEntries_AccountId]" Table="[LedgerEntries]" Schema="[dbo]" Database="[LedgerCore]"></StatisticsInfo>
+            </OptimizerStatsUsage>
+            <WaitStats>
+              <Wait WaitType="CXSYNC_PORT" WaitTimeMs="481" WaitCount="17"></Wait>
+              <Wait WaitType="SOS_SCHEDULER_YIELD" WaitTimeMs="80" WaitCount="810"></Wait>
+              <Wait WaitType="CXPACKET" WaitTimeMs="45" WaitCount="9"></Wait>
+              <Wait WaitType="LATCH_EX" WaitTimeMs="32" WaitCount="37"></Wait>
+              <Wait WaitType="LATCH_SH" WaitTimeMs="2" WaitCount="11"></Wait>
+            </WaitStats>
+            <QueryTimeStats ElapsedTime="337" CpuTime="4374"></QueryTimeStats>
+            <RelOp NodeId="0" PhysicalOp="Compute Scalar" LogicalOp="Compute Scalar" EstimateRows="28372.5" EstimateIO="0" EstimateCPU="0.00283725" AvgRowSize="391" EstimatedTotalSubtreeCost="157.532" Parallel="0" EstimateRebinds="0" EstimateRewinds="0" EstimatedExecutionMode="Row">
+              <OutputList>
+                <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="Id"></ColumnReference>
+                <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="TransactionId"></ColumnReference>
+                <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="CreatedAtUtc"></ColumnReference>
+                <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="Type"></ColumnReference>
+                <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="ReferenceId"></ColumnReference>
+                <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="Description"></ColumnReference>
+                <ColumnReference Column="Expr1002"></ColumnReference>
+                <ColumnReference Column="Expr1004"></ColumnReference>
+              </OutputList>
+              <ComputeScalar>
+                <DefinedValues>
+                  <DefinedValue>
+                    <ColumnReference Column="Expr1004"></ColumnReference>
+                    <ScalarOperator ScalarString="[@OpeningBalance]+[Expr1003]">
+                      <Arithmetic Operation="ADD">
+                        <ScalarOperator>
+                          <Identifier>
+                            <ColumnReference Column="@OpeningBalance"></ColumnReference>
+                          </Identifier>
+                        </ScalarOperator>
+                        <ScalarOperator>
+                          <Identifier>
+                            <ColumnReference Column="Expr1003"></ColumnReference>
+                          </Identifier>
+                        </ScalarOperator>
+                      </Arithmetic>
+                    </ScalarOperator>
+                  </DefinedValue>
+                </DefinedValues>
+                <RelOp NodeId="1" PhysicalOp="Compute Scalar" LogicalOp="Compute Scalar" EstimateRows="28372.5" EstimateIO="0" EstimateCPU="0.00283725" AvgRowSize="391" EstimatedTotalSubtreeCost="157.529" Parallel="0" EstimateRebinds="0" EstimateRewinds="0" EstimatedExecutionMode="Row">
+                  <OutputList>
+                    <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="Id"></ColumnReference>
+                    <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="TransactionId"></ColumnReference>
+                    <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="CreatedAtUtc"></ColumnReference>
+                    <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="Type"></ColumnReference>
+                    <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="ReferenceId"></ColumnReference>
+                    <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="Description"></ColumnReference>
+                    <ColumnReference Column="Expr1002"></ColumnReference>
+                    <ColumnReference Column="Expr1003"></ColumnReference>
+                  </OutputList>
+                  <ComputeScalar>
+                    <DefinedValues>
+                      <DefinedValue>
+                        <ColumnReference Column="Expr1003"></ColumnReference>
+                        <ScalarOperator ScalarString="CASE WHEN [Expr1006]=(0) THEN NULL ELSE [Expr1007] END">
+                          <IF>
+                            <Condition>
+                              <ScalarOperator>
+                                <Compare CompareOp="EQ">
+                                  <ScalarOperator>
+                                    <Identifier>
+                                      <ColumnReference Column="Expr1006"></ColumnReference>
+                                    </Identifier>
+                                  </ScalarOperator>
+                                  <ScalarOperator>
+                                    <Const ConstValue="(0)"></Const>
+                                  </ScalarOperator>
+                                </Compare>
+                              </ScalarOperator>
+                            </Condition>
+                            <Then>
+                              <ScalarOperator>
+                                <Const ConstValue="NULL"></Const>
+                              </ScalarOperator>
+                            </Then>
+                            <Else>
+                              <ScalarOperator>
+                                <Identifier>
+                                  <ColumnReference Column="Expr1007"></ColumnReference>
+                                </Identifier>
+                              </ScalarOperator>
+                            </Else>
+                          </IF>
+                        </ScalarOperator>
+                      </DefinedValue>
+                    </DefinedValues>
+                    <RelOp NodeId="2" PhysicalOp="Stream Aggregate" LogicalOp="Aggregate" EstimateRows="28372.5" EstimateIO="0" EstimateCPU="0.0178179" AvgRowSize="400" EstimatedTotalSubtreeCost="157.527" Parallel="0" EstimateRebinds="0" EstimateRewinds="0" EstimatedExecutionMode="Row">
+                      <OutputList>
+                        <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="Id"></ColumnReference>
+                        <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="TransactionId"></ColumnReference>
+                        <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="CreatedAtUtc"></ColumnReference>
+                        <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="Type"></ColumnReference>
+                        <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="ReferenceId"></ColumnReference>
+                        <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="Description"></ColumnReference>
+                        <ColumnReference Column="Expr1002"></ColumnReference>
+                        <ColumnReference Column="Expr1006"></ColumnReference>
+                        <ColumnReference Column="Expr1007"></ColumnReference>
+                      </OutputList>
+                      <RunTimeInformation>
+                        <RunTimeCountersPerThread Thread="0" ActualRows="7667" Batches="0" ActualElapsedms="323" ActualCPUms="32" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                      </RunTimeInformation>
+                      <StreamAggregate>
+                        <DefinedValues>
+                          <DefinedValue>
+                            <ColumnReference Column="Expr1006"></ColumnReference>
+                            <ScalarOperator ScalarString="COUNT_BIG([Expr1005])">
+                              <Aggregate Distinct="0" AggType="COUNT_BIG">
+                                <ScalarOperator>
+                                  <Identifier>
+                                    <ColumnReference Column="Expr1005"></ColumnReference>
+                                  </Identifier>
+                                </ScalarOperator>
+                              </Aggregate>
+                            </ScalarOperator>
+                          </DefinedValue>
+                          <DefinedValue>
+                            <ColumnReference Column="Expr1007"></ColumnReference>
+                            <ScalarOperator ScalarString="SUM([Expr1005])">
+                              <Aggregate Distinct="0" AggType="SUM">
+                                <ScalarOperator>
+                                  <Identifier>
+                                    <ColumnReference Column="Expr1005"></ColumnReference>
+                                  </Identifier>
+                                </ScalarOperator>
+                              </Aggregate>
+                            </ScalarOperator>
+                          </DefinedValue>
+                          <DefinedValue>
+                            <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="Id"></ColumnReference>
+                            <ScalarOperator ScalarString="ANY([LedgerCore].[dbo].[LedgerEntries].[Id] as [e].[Id])">
+                              <Aggregate Distinct="0" AggType="ANY">
+                                <ScalarOperator>
+                                  <Identifier>
+                                    <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="Id"></ColumnReference>
+                                  </Identifier>
+                                </ScalarOperator>
+                              </Aggregate>
+                            </ScalarOperator>
+                          </DefinedValue>
+                          <DefinedValue>
+                            <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="TransactionId"></ColumnReference>
+                            <ScalarOperator ScalarString="ANY([LedgerCore].[dbo].[LedgerEntries].[TransactionId] as [e].[TransactionId])">
+                              <Aggregate Distinct="0" AggType="ANY">
+                                <ScalarOperator>
+                                  <Identifier>
+                                    <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="TransactionId"></ColumnReference>
+                                  </Identifier>
+                                </ScalarOperator>
+                              </Aggregate>
+                            </ScalarOperator>
+                          </DefinedValue>
+                          <DefinedValue>
+                            <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="CreatedAtUtc"></ColumnReference>
+                            <ScalarOperator ScalarString="ANY([LedgerCore].[dbo].[LedgerEntries].[CreatedAtUtc] as [e].[CreatedAtUtc])">
+                              <Aggregate Distinct="0" AggType="ANY">
+                                <ScalarOperator>
+                                  <Identifier>
+                                    <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="CreatedAtUtc"></ColumnReference>
+                                  </Identifier>
+                                </ScalarOperator>
+                              </Aggregate>
+                            </ScalarOperator>
+                          </DefinedValue>
+                          <DefinedValue>
+                            <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="Type"></ColumnReference>
+                            <ScalarOperator ScalarString="ANY([LedgerCore].[dbo].[LedgerTransactions].[Type] as [t].[Type])">
+                              <Aggregate Distinct="0" AggType="ANY">
+                                <ScalarOperator>
+                                  <Identifier>
+                                    <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="Type"></ColumnReference>
+                                  </Identifier>
+                                </ScalarOperator>
+                              </Aggregate>
+                            </ScalarOperator>
+                          </DefinedValue>
+                          <DefinedValue>
+                            <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="ReferenceId"></ColumnReference>
+                            <ScalarOperator ScalarString="ANY([LedgerCore].[dbo].[LedgerTransactions].[ReferenceId] as [t].[ReferenceId])">
+                              <Aggregate Distinct="0" AggType="ANY">
+                                <ScalarOperator>
+                                  <Identifier>
+                                    <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="ReferenceId"></ColumnReference>
+                                  </Identifier>
+                                </ScalarOperator>
+                              </Aggregate>
+                            </ScalarOperator>
+                          </DefinedValue>
+                          <DefinedValue>
+                            <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="Description"></ColumnReference>
+                            <ScalarOperator ScalarString="ANY([LedgerCore].[dbo].[LedgerTransactions].[Description] as [t].[Description])">
+                              <Aggregate Distinct="0" AggType="ANY">
+                                <ScalarOperator>
+                                  <Identifier>
+                                    <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="Description"></ColumnReference>
+                                  </Identifier>
+                                </ScalarOperator>
+                              </Aggregate>
+                            </ScalarOperator>
+                          </DefinedValue>
+                          <DefinedValue>
+                            <ColumnReference Column="Expr1002"></ColumnReference>
+                            <ScalarOperator ScalarString="ANY([Expr1002])">
+                              <Aggregate Distinct="0" AggType="ANY">
+                                <ScalarOperator>
+                                  <Identifier>
+                                    <ColumnReference Column="Expr1002"></ColumnReference>
+                                  </Identifier>
+                                </ScalarOperator>
+                              </Aggregate>
+                            </ScalarOperator>
+                          </DefinedValue>
+                        </DefinedValues>
+                        <GroupBy>
+                          <ColumnReference Column="WindowCount1015"></ColumnReference>
+                        </GroupBy>
+                        <RelOp NodeId="3" PhysicalOp="Window Spool" LogicalOp="Window Spool" EstimateRows="56745" EstimateIO="0" EstimateCPU="0.0623627" AvgRowSize="400" EstimatedTotalSubtreeCost="157.509" Parallel="0" EstimateRebinds="0" EstimateRewinds="0" EstimatedExecutionMode="Row">
+                          <OutputList>
+                            <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="Id"></ColumnReference>
+                            <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="TransactionId"></ColumnReference>
+                            <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="CreatedAtUtc"></ColumnReference>
+                            <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="Type"></ColumnReference>
+                            <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="ReferenceId"></ColumnReference>
+                            <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="Description"></ColumnReference>
+                            <ColumnReference Column="Expr1002"></ColumnReference>
+                            <ColumnReference Column="Expr1005"></ColumnReference>
+                            <ColumnReference Column="RowNumber1010"></ColumnReference>
+                            <ColumnReference Column="WindowCount1015"></ColumnReference>
+                            <ColumnReference Column="Segment1014"></ColumnReference>
+                          </OutputList>
+                          <RunTimeInformation>
+                            <RunTimeCountersPerThread Thread="0" ActualRows="15334" Batches="0" ActualElapsedms="309" ActualCPUms="19" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                          </RunTimeInformation>
+                          <WindowSpool>
+                            <RelOp NodeId="4" PhysicalOp="Segment" LogicalOp="Segment" EstimateRows="28372.5" EstimateIO="0" EstimateCPU="0.00178179" AvgRowSize="400" EstimatedTotalSubtreeCost="157.439" Parallel="0" EstimateRebinds="0" EstimateRewinds="0" EstimatedExecutionMode="Row">
+                              <OutputList>
+                                <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="Id"></ColumnReference>
+                                <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="TransactionId"></ColumnReference>
+                                <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="CreatedAtUtc"></ColumnReference>
+                                <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="Type"></ColumnReference>
+                                <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="ReferenceId"></ColumnReference>
+                                <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="Description"></ColumnReference>
+                                <ColumnReference Column="Expr1002"></ColumnReference>
+                                <ColumnReference Column="Expr1005"></ColumnReference>
+                                <ColumnReference Column="RowNumber1010"></ColumnReference>
+                                <ColumnReference Column="Segment1014"></ColumnReference>
+                              </OutputList>
+                              <RunTimeInformation>
+                                <RunTimeCountersPerThread Thread="0" ActualRows="7667" Batches="0" ActualElapsedms="299" ActualCPUms="9" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                              </RunTimeInformation>
+                              <Segment>
+                                <GroupBy></GroupBy>
+                                <SegmentColumn>
+                                  <ColumnReference Column="Segment1014"></ColumnReference>
+                                </SegmentColumn>
+                                <RelOp NodeId="5" PhysicalOp="Sequence Project" LogicalOp="Compute Scalar" EstimateRows="28372.5" EstimateIO="0" EstimateCPU="0.0022698" AvgRowSize="392" EstimatedTotalSubtreeCost="157.438" Parallel="0" EstimateRebinds="0" EstimateRewinds="0" EstimatedExecutionMode="Row">
+                                  <OutputList>
+                                    <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="Id"></ColumnReference>
+                                    <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="TransactionId"></ColumnReference>
+                                    <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="CreatedAtUtc"></ColumnReference>
+                                    <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="Type"></ColumnReference>
+                                    <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="ReferenceId"></ColumnReference>
+                                    <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="Description"></ColumnReference>
+                                    <ColumnReference Column="Expr1002"></ColumnReference>
+                                    <ColumnReference Column="Expr1005"></ColumnReference>
+                                    <ColumnReference Column="RowNumber1010"></ColumnReference>
+                                  </OutputList>
+                                  <RunTimeInformation>
+                                    <RunTimeCountersPerThread Thread="0" ActualRows="7667" Batches="0" ActualElapsedms="299" ActualCPUms="8" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                  </RunTimeInformation>
+                                  <SequenceProject>
+                                    <DefinedValues>
+                                      <DefinedValue>
+                                        <ColumnReference Column="RowNumber1010"></ColumnReference>
+                                        <ScalarOperator ScalarString="row_number">
+                                          <Sequence FunctionName="row_number"></Sequence>
+                                        </ScalarOperator>
+                                      </DefinedValue>
+                                    </DefinedValues>
+                                    <RelOp NodeId="6" PhysicalOp="Segment" LogicalOp="Segment" EstimateRows="28372.5" EstimateIO="0" EstimateCPU="0.00056745" AvgRowSize="392" EstimatedTotalSubtreeCost="157.435" Parallel="0" EstimateRebinds="0" EstimateRewinds="0" EstimatedExecutionMode="Row">
+                                      <OutputList>
+                                        <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="Id"></ColumnReference>
+                                        <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="TransactionId"></ColumnReference>
+                                        <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="CreatedAtUtc"></ColumnReference>
+                                        <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="Type"></ColumnReference>
+                                        <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="ReferenceId"></ColumnReference>
+                                        <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="Description"></ColumnReference>
+                                        <ColumnReference Column="Expr1002"></ColumnReference>
+                                        <ColumnReference Column="Expr1005"></ColumnReference>
+                                        <ColumnReference Column="Segment1013"></ColumnReference>
+                                      </OutputList>
+                                      <RunTimeInformation>
+                                        <RunTimeCountersPerThread Thread="0" ActualRows="7667" Batches="0" ActualElapsedms="297" ActualCPUms="7" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                      </RunTimeInformation>
+                                      <Segment>
+                                        <GroupBy></GroupBy>
+                                        <SegmentColumn>
+                                          <ColumnReference Column="Segment1013"></ColumnReference>
+                                        </SegmentColumn>
+                                        <RelOp NodeId="7" PhysicalOp="Parallelism" LogicalOp="Gather Streams" EstimateRows="28372.5" EstimateIO="0" EstimateCPU="0.244565" AvgRowSize="383" EstimatedTotalSubtreeCost="157.435" Parallel="1" EstimateRebinds="0" EstimateRewinds="0" EstimatedExecutionMode="Row">
+                                          <OutputList>
+                                            <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="Id"></ColumnReference>
+                                            <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="TransactionId"></ColumnReference>
+                                            <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="CreatedAtUtc"></ColumnReference>
+                                            <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="Type"></ColumnReference>
+                                            <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="ReferenceId"></ColumnReference>
+                                            <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="Description"></ColumnReference>
+                                            <ColumnReference Column="Expr1002"></ColumnReference>
+                                            <ColumnReference Column="Expr1005"></ColumnReference>
+                                          </OutputList>
+                                          <RunTimeInformation>
+                                            <RunTimeCountersPerThread Thread="0" ActualRows="7667" Batches="0" ActualElapsedms="297" ActualCPUms="6" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                          </RunTimeInformation>
+                                          <Parallelism>
+                                            <OrderBy>
+                                              <OrderByColumn Ascending="1">
+                                                <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="CreatedAtUtc"></ColumnReference>
+                                              </OrderByColumn>
+                                              <OrderByColumn Ascending="1">
+                                                <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="Id"></ColumnReference>
+                                              </OrderByColumn>
+                                            </OrderBy>
+                                            <RelOp NodeId="8" PhysicalOp="Nested Loops" LogicalOp="Inner Join" EstimateRows="28372.5" EstimateIO="0" EstimateCPU="0.0148246" AvgRowSize="383" EstimatedTotalSubtreeCost="157.19" Parallel="1" EstimateRebinds="0" EstimateRewinds="0" EstimatedExecutionMode="Row">
+                                              <OutputList>
+                                                <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="Id"></ColumnReference>
+                                                <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="TransactionId"></ColumnReference>
+                                                <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="CreatedAtUtc"></ColumnReference>
+                                                <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="Type"></ColumnReference>
+                                                <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="ReferenceId"></ColumnReference>
+                                                <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="Description"></ColumnReference>
+                                                <ColumnReference Column="Expr1002"></ColumnReference>
+                                                <ColumnReference Column="Expr1005"></ColumnReference>
+                                              </OutputList>
+                                              <RunTimeInformation>
+                                                <RunTimeCountersPerThread Thread="16" ActualRows="610" Batches="0" ActualElapsedms="280" ActualCPUms="278" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                <RunTimeCountersPerThread Thread="15" ActualRows="514" Batches="0" ActualElapsedms="273" ActualCPUms="271" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                <RunTimeCountersPerThread Thread="14" ActualRows="819" Batches="0" ActualElapsedms="284" ActualCPUms="281" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                <RunTimeCountersPerThread Thread="13" ActualRows="586" Batches="0" ActualElapsedms="274" ActualCPUms="271" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                <RunTimeCountersPerThread Thread="12" ActualRows="377" Batches="0" ActualElapsedms="272" ActualCPUms="226" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                <RunTimeCountersPerThread Thread="11" ActualRows="379" Batches="0" ActualElapsedms="271" ActualCPUms="271" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                <RunTimeCountersPerThread Thread="10" ActualRows="387" Batches="0" ActualElapsedms="271" ActualCPUms="271" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                <RunTimeCountersPerThread Thread="9" ActualRows="611" Batches="0" ActualElapsedms="275" ActualCPUms="273" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                <RunTimeCountersPerThread Thread="8" ActualRows="759" Batches="0" ActualElapsedms="288" ActualCPUms="287" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                <RunTimeCountersPerThread Thread="7" ActualRows="413" Batches="0" ActualElapsedms="273" ActualCPUms="272" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                <RunTimeCountersPerThread Thread="6" ActualRows="376" Batches="0" ActualElapsedms="273" ActualCPUms="268" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                <RunTimeCountersPerThread Thread="5" ActualRows="428" Batches="0" ActualElapsedms="273" ActualCPUms="272" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                <RunTimeCountersPerThread Thread="4" ActualRows="217" Batches="0" ActualElapsedms="269" ActualCPUms="269" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                <RunTimeCountersPerThread Thread="3" ActualRows="364" Batches="0" ActualElapsedms="270" ActualCPUms="269" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                <RunTimeCountersPerThread Thread="2" ActualRows="406" Batches="0" ActualElapsedms="270" ActualCPUms="266" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                <RunTimeCountersPerThread Thread="1" ActualRows="421" Batches="0" ActualElapsedms="269" ActualCPUms="267" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                <RunTimeCountersPerThread Thread="0" ActualRows="0" Batches="0" ActualElapsedms="0" ActualCPUms="0" ActualEndOfScans="0" ActualExecutions="0" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                              </RunTimeInformation>
+                                              <NestedLoops Optimized="0" WithOrderedPrefetch="1">
+                                                <OuterReferences>
+                                                  <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="TransactionId"></ColumnReference>
+                                                  <ColumnReference Column="Expr1012"></ColumnReference>
+                                                </OuterReferences>
+                                                <RelOp NodeId="10" PhysicalOp="Sort" LogicalOp="Sort" EstimateRows="28372.5" EstimateIO="0.00140766" EstimateCPU="0.240811" AvgRowSize="56" EstimatedTotalSubtreeCost="76.5604" Parallel="1" EstimateRebinds="0" EstimateRewinds="0" EstimatedExecutionMode="Row">
+                                                  <OutputList>
+                                                    <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="Id"></ColumnReference>
+                                                    <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="TransactionId"></ColumnReference>
+                                                    <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="CreatedAtUtc"></ColumnReference>
+                                                    <ColumnReference Column="Expr1002"></ColumnReference>
+                                                    <ColumnReference Column="Expr1005"></ColumnReference>
+                                                  </OutputList>
+                                                  <MemoryFractions Input="1" Output="1"></MemoryFractions>
+                                                  <RunTimeInformation>
+                                                    <RunTimeCountersPerThread Thread="16" ActualRows="610" Batches="0" ActualElapsedms="277" ActualCPUms="275" ActualScans="0" ActualLogicalReads="0" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRebinds="1" ActualRewinds="0" ActualEndOfScans="1" ActualExecutions="1" InputMemoryGrant="576" OutputMemoryGrant="192" UsedMemoryGrant="64" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                    <RunTimeCountersPerThread Thread="15" ActualRows="514" Batches="0" ActualElapsedms="270" ActualCPUms="267" ActualScans="0" ActualLogicalReads="0" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRebinds="1" ActualRewinds="0" ActualEndOfScans="1" ActualExecutions="1" InputMemoryGrant="576" OutputMemoryGrant="192" UsedMemoryGrant="56" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                    <RunTimeCountersPerThread Thread="14" ActualRows="819" Batches="0" ActualElapsedms="280" ActualCPUms="277" ActualScans="0" ActualLogicalReads="0" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRebinds="1" ActualRewinds="0" ActualEndOfScans="1" ActualExecutions="1" InputMemoryGrant="576" OutputMemoryGrant="192" UsedMemoryGrant="88" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                    <RunTimeCountersPerThread Thread="13" ActualRows="586" Batches="0" ActualElapsedms="272" ActualCPUms="268" ActualScans="0" ActualLogicalReads="0" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRebinds="1" ActualRewinds="0" ActualEndOfScans="1" ActualExecutions="1" InputMemoryGrant="576" OutputMemoryGrant="192" UsedMemoryGrant="56" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                    <RunTimeCountersPerThread Thread="12" ActualRows="377" Batches="0" ActualElapsedms="270" ActualCPUms="224" ActualScans="0" ActualLogicalReads="0" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRebinds="1" ActualRewinds="0" ActualEndOfScans="1" ActualExecutions="1" InputMemoryGrant="576" OutputMemoryGrant="192" UsedMemoryGrant="40" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                    <RunTimeCountersPerThread Thread="11" ActualRows="379" Batches="0" ActualElapsedms="269" ActualCPUms="269" ActualScans="0" ActualLogicalReads="0" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRebinds="1" ActualRewinds="0" ActualEndOfScans="1" ActualExecutions="1" InputMemoryGrant="576" OutputMemoryGrant="192" UsedMemoryGrant="40" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                    <RunTimeCountersPerThread Thread="10" ActualRows="387" Batches="0" ActualElapsedms="269" ActualCPUms="269" ActualScans="0" ActualLogicalReads="0" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRebinds="1" ActualRewinds="0" ActualEndOfScans="1" ActualExecutions="1" InputMemoryGrant="576" OutputMemoryGrant="192" UsedMemoryGrant="40" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                    <RunTimeCountersPerThread Thread="9" ActualRows="611" Batches="0" ActualElapsedms="273" ActualCPUms="270" ActualScans="0" ActualLogicalReads="0" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRebinds="1" ActualRewinds="0" ActualEndOfScans="1" ActualExecutions="1" InputMemoryGrant="576" OutputMemoryGrant="192" UsedMemoryGrant="64" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                    <RunTimeCountersPerThread Thread="8" ActualRows="759" Batches="0" ActualElapsedms="281" ActualCPUms="280" ActualScans="0" ActualLogicalReads="0" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRebinds="1" ActualRewinds="0" ActualEndOfScans="1" ActualExecutions="1" InputMemoryGrant="576" OutputMemoryGrant="192" UsedMemoryGrant="80" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                    <RunTimeCountersPerThread Thread="7" ActualRows="413" Batches="0" ActualElapsedms="270" ActualCPUms="270" ActualScans="0" ActualLogicalReads="0" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRebinds="1" ActualRewinds="0" ActualEndOfScans="1" ActualExecutions="1" InputMemoryGrant="576" OutputMemoryGrant="192" UsedMemoryGrant="48" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                    <RunTimeCountersPerThread Thread="6" ActualRows="376" Batches="0" ActualElapsedms="270" ActualCPUms="266" ActualScans="0" ActualLogicalReads="0" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRebinds="1" ActualRewinds="0" ActualEndOfScans="1" ActualExecutions="1" InputMemoryGrant="576" OutputMemoryGrant="192" UsedMemoryGrant="40" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                    <RunTimeCountersPerThread Thread="5" ActualRows="428" Batches="0" ActualElapsedms="271" ActualCPUms="270" ActualScans="0" ActualLogicalReads="0" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRebinds="1" ActualRewinds="0" ActualEndOfScans="1" ActualExecutions="1" InputMemoryGrant="576" OutputMemoryGrant="192" UsedMemoryGrant="48" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                    <RunTimeCountersPerThread Thread="4" ActualRows="217" Batches="0" ActualElapsedms="268" ActualCPUms="267" ActualScans="0" ActualLogicalReads="0" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRebinds="1" ActualRewinds="0" ActualEndOfScans="1" ActualExecutions="1" InputMemoryGrant="576" OutputMemoryGrant="192" UsedMemoryGrant="32" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                    <RunTimeCountersPerThread Thread="3" ActualRows="364" Batches="0" ActualElapsedms="268" ActualCPUms="268" ActualScans="0" ActualLogicalReads="0" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRebinds="1" ActualRewinds="0" ActualEndOfScans="1" ActualExecutions="1" InputMemoryGrant="576" OutputMemoryGrant="192" UsedMemoryGrant="40" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                    <RunTimeCountersPerThread Thread="2" ActualRows="406" Batches="0" ActualElapsedms="268" ActualCPUms="264" ActualScans="0" ActualLogicalReads="0" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRebinds="1" ActualRewinds="0" ActualEndOfScans="1" ActualExecutions="1" InputMemoryGrant="576" OutputMemoryGrant="192" UsedMemoryGrant="40" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                    <RunTimeCountersPerThread Thread="1" ActualRows="421" Batches="0" ActualElapsedms="267" ActualCPUms="265" ActualScans="0" ActualLogicalReads="0" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRebinds="1" ActualRewinds="0" ActualEndOfScans="1" ActualExecutions="1" InputMemoryGrant="576" OutputMemoryGrant="192" UsedMemoryGrant="48" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                    <RunTimeCountersPerThread Thread="0" ActualRows="0" Batches="0" ActualElapsedms="0" ActualCPUms="0" ActualScans="0" ActualLogicalReads="0" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRebinds="0" ActualRewinds="0" ActualEndOfScans="0" ActualExecutions="0" InputMemoryGrant="0" OutputMemoryGrant="0" UsedMemoryGrant="0" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                  </RunTimeInformation>
+                                                  <Sort Distinct="0">
+                                                    <OrderBy>
+                                                      <OrderByColumn Ascending="1">
+                                                        <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="CreatedAtUtc"></ColumnReference>
+                                                      </OrderByColumn>
+                                                      <OrderByColumn Ascending="1">
+                                                        <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="Id"></ColumnReference>
+                                                      </OrderByColumn>
+                                                    </OrderBy>
+                                                    <RelOp NodeId="11" PhysicalOp="Compute Scalar" LogicalOp="Compute Scalar" EstimateRows="28372.5" EstimateIO="0" EstimateCPU="0.125" AvgRowSize="72" EstimatedTotalSubtreeCost="74.8431" Parallel="1" EstimateRebinds="0" EstimateRewinds="0" EstimatedExecutionMode="Row">
+                                                      <OutputList>
+                                                        <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="Id"></ColumnReference>
+                                                        <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="TransactionId"></ColumnReference>
+                                                        <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="CreatedAtUtc"></ColumnReference>
+                                                        <ColumnReference Column="Expr1002"></ColumnReference>
+                                                        <ColumnReference Column="Expr1005"></ColumnReference>
+                                                      </OutputList>
+                                                      <ComputeScalar>
+                                                        <DefinedValues>
+                                                          <DefinedValue>
+                                                            <ColumnReference Column="Expr1002"></ColumnReference>
+                                                            <ScalarOperator ScalarString="CASE WHEN [LedgerCore].[dbo].[LedgerEntries].[Direction] as [e].[Direction]=(2) THEN [LedgerCore].[dbo].[LedgerEntries].[Amount] as [e].[Amount] ELSE  -[LedgerCore].[dbo].[LedgerEntries].[Amount] as [e].[Amount] END">
+                                                              <IF>
+                                                                <Condition>
+                                                                  <ScalarOperator>
+                                                                    <Compare CompareOp="EQ">
+                                                                      <ScalarOperator>
+                                                                        <Identifier>
+                                                                          <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="Direction"></ColumnReference>
+                                                                        </Identifier>
+                                                                      </ScalarOperator>
+                                                                      <ScalarOperator>
+                                                                        <Const ConstValue="(2)"></Const>
+                                                                      </ScalarOperator>
+                                                                    </Compare>
+                                                                  </ScalarOperator>
+                                                                </Condition>
+                                                                <Then>
+                                                                  <ScalarOperator>
+                                                                    <Identifier>
+                                                                      <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="Amount"></ColumnReference>
+                                                                    </Identifier>
+                                                                  </ScalarOperator>
+                                                                </Then>
+                                                                <Else>
+                                                                  <ScalarOperator>
+                                                                    <Arithmetic Operation="MINUS">
+                                                                      <ScalarOperator>
+                                                                        <Identifier>
+                                                                          <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="Amount"></ColumnReference>
+                                                                        </Identifier>
+                                                                      </ScalarOperator>
+                                                                    </Arithmetic>
+                                                                  </ScalarOperator>
+                                                                </Else>
+                                                              </IF>
+                                                            </ScalarOperator>
+                                                          </DefinedValue>
+                                                          <DefinedValue>
+                                                            <ColumnReference Column="Expr1005"></ColumnReference>
+                                                            <ScalarOperator ScalarString="CASE WHEN [LedgerCore].[dbo].[LedgerEntries].[Direction] as [e].[Direction]=(2) THEN [LedgerCore].[dbo].[LedgerEntries].[Amount] as [e].[Amount] ELSE  -[LedgerCore].[dbo].[LedgerEntries].[Amount] as [e].[Amount] END">
+                                                              <IF>
+                                                                <Condition>
+                                                                  <ScalarOperator>
+                                                                    <Compare CompareOp="EQ">
+                                                                      <ScalarOperator>
+                                                                        <Identifier>
+                                                                          <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="Direction"></ColumnReference>
+                                                                        </Identifier>
+                                                                      </ScalarOperator>
+                                                                      <ScalarOperator>
+                                                                        <Const ConstValue="(2)"></Const>
+                                                                      </ScalarOperator>
+                                                                    </Compare>
+                                                                  </ScalarOperator>
+                                                                </Condition>
+                                                                <Then>
+                                                                  <ScalarOperator>
+                                                                    <Identifier>
+                                                                      <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="Amount"></ColumnReference>
+                                                                    </Identifier>
+                                                                  </ScalarOperator>
+                                                                </Then>
+                                                                <Else>
+                                                                  <ScalarOperator>
+                                                                    <Arithmetic Operation="MINUS">
+                                                                      <ScalarOperator>
+                                                                        <Identifier>
+                                                                          <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="Amount"></ColumnReference>
+                                                                        </Identifier>
+                                                                      </ScalarOperator>
+                                                                    </Arithmetic>
+                                                                  </ScalarOperator>
+                                                                </Else>
+                                                              </IF>
+                                                            </ScalarOperator>
+                                                          </DefinedValue>
+                                                        </DefinedValues>
+                                                        <RelOp NodeId="12" PhysicalOp="Clustered Index Scan" LogicalOp="Clustered Index Scan" EstimateRows="28372.5" EstimatedRowsRead="1e+07" EstimateIO="73.3431" EstimateCPU="1.37502" AvgRowSize="64" EstimatedTotalSubtreeCost="74.7181" TableCardinality="1e+07" Parallel="1" EstimateRebinds="0" EstimateRewinds="0" EstimatedExecutionMode="Row">
+                                                          <OutputList>
+                                                            <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="Id"></ColumnReference>
+                                                            <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="TransactionId"></ColumnReference>
+                                                            <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="Direction"></ColumnReference>
+                                                            <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="Amount"></ColumnReference>
+                                                            <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="CreatedAtUtc"></ColumnReference>
+                                                          </OutputList>
+                                                          <RunTimeInformation>
+                                                            <RunTimeCountersPerThread Thread="16" ActualRows="610" Batches="0" ActualElapsedms="275" ActualCPUms="273" ActualScans="1" ActualLogicalReads="6758" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="666903" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                            <RunTimeCountersPerThread Thread="15" ActualRows="514" Batches="0" ActualElapsedms="268" ActualCPUms="265" ActualScans="1" ActualLogicalReads="6540" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="645390" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                            <RunTimeCountersPerThread Thread="14" ActualRows="819" Batches="0" ActualElapsedms="279" ActualCPUms="276" ActualScans="1" ActualLogicalReads="6976" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="688416" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                            <RunTimeCountersPerThread Thread="13" ActualRows="586" Batches="0" ActualElapsedms="271" ActualCPUms="267" ActualScans="1" ActualLogicalReads="6976" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="688416" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                            <RunTimeCountersPerThread Thread="12" ActualRows="377" Batches="0" ActualElapsedms="268" ActualCPUms="222" ActualScans="1" ActualLogicalReads="5014" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="494799" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                            <RunTimeCountersPerThread Thread="11" ActualRows="379" Batches="0" ActualElapsedms="269" ActualCPUms="268" ActualScans="1" ActualLogicalReads="6540" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="645390" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                            <RunTimeCountersPerThread Thread="10" ActualRows="387" Batches="0" ActualElapsedms="269" ActualCPUms="269" ActualScans="1" ActualLogicalReads="6758" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="666903" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                            <RunTimeCountersPerThread Thread="9" ActualRows="611" Batches="0" ActualElapsedms="272" ActualCPUms="269" ActualScans="1" ActualLogicalReads="6758" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="666903" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                            <RunTimeCountersPerThread Thread="8" ActualRows="759" Batches="0" ActualElapsedms="280" ActualCPUms="280" ActualScans="1" ActualLogicalReads="6716" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="663363" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                            <RunTimeCountersPerThread Thread="7" ActualRows="413" Batches="0" ActualElapsedms="270" ActualCPUms="269" ActualScans="1" ActualLogicalReads="6540" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="645390" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                            <RunTimeCountersPerThread Thread="6" ActualRows="376" Batches="0" ActualElapsedms="265" ActualCPUms="260" ActualScans="1" ActualLogicalReads="5450" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="537825" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                            <RunTimeCountersPerThread Thread="5" ActualRows="428" Batches="0" ActualElapsedms="270" ActualCPUms="270" ActualScans="1" ActualLogicalReads="6322" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="623877" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                            <RunTimeCountersPerThread Thread="4" ActualRows="217" Batches="0" ActualElapsedms="267" ActualCPUms="267" ActualScans="1" ActualLogicalReads="6322" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="623877" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                            <RunTimeCountersPerThread Thread="3" ActualRows="364" Batches="0" ActualElapsedms="268" ActualCPUms="267" ActualScans="1" ActualLogicalReads="5668" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="559338" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                            <RunTimeCountersPerThread Thread="2" ActualRows="406" Batches="0" ActualElapsedms="267" ActualCPUms="263" ActualScans="1" ActualLogicalReads="5886" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="580851" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                            <RunTimeCountersPerThread Thread="1" ActualRows="421" Batches="0" ActualElapsedms="266" ActualCPUms="264" ActualScans="1" ActualLogicalReads="6104" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="602365" ActualEndOfScans="1" ActualExecutions="1" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                            <RunTimeCountersPerThread Thread="0" ActualRows="0" Batches="0" ActualElapsedms="0" ActualCPUms="0" ActualScans="1" ActualLogicalReads="2" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualEndOfScans="0" ActualExecutions="0" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                          </RunTimeInformation>
+                                                          <IndexScan Ordered="0" ForcedIndex="0" ForceScan="0" NoExpandHint="0" Storage="RowStore">
+                                                            <DefinedValues>
+                                                              <DefinedValue>
+                                                                <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="Id"></ColumnReference>
+                                                              </DefinedValue>
+                                                              <DefinedValue>
+                                                                <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="TransactionId"></ColumnReference>
+                                                              </DefinedValue>
+                                                              <DefinedValue>
+                                                                <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="Direction"></ColumnReference>
+                                                              </DefinedValue>
+                                                              <DefinedValue>
+                                                                <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="Amount"></ColumnReference>
+                                                              </DefinedValue>
+                                                              <DefinedValue>
+                                                                <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="CreatedAtUtc"></ColumnReference>
+                                                              </DefinedValue>
+                                                            </DefinedValues>
+                                                            <Object Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Index="[PK_LedgerEntries]" Alias="[e]" IndexKind="Clustered" Storage="RowStore"></Object>
+                                                            <Predicate>
+                                                              <ScalarOperator ScalarString="[LedgerCore].[dbo].[LedgerEntries].[AccountId] as [e].[AccountId]=[@AccountId] AND [LedgerCore].[dbo].[LedgerEntries].[CreatedAtUtc] as [e].[CreatedAtUtc]&gt;=[@FromUtc] AND [LedgerCore].[dbo].[LedgerEntries].[CreatedAtUtc] as [e].[CreatedAtUtc]&lt;[@ToUtc]">
+                                                                <Logical Operation="AND">
+                                                                  <ScalarOperator>
+                                                                    <Compare CompareOp="EQ">
+                                                                      <ScalarOperator>
+                                                                        <Identifier>
+                                                                          <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="AccountId"></ColumnReference>
+                                                                        </Identifier>
+                                                                      </ScalarOperator>
+                                                                      <ScalarOperator>
+                                                                        <Identifier>
+                                                                          <ColumnReference Column="@AccountId"></ColumnReference>
+                                                                        </Identifier>
+                                                                      </ScalarOperator>
+                                                                    </Compare>
+                                                                  </ScalarOperator>
+                                                                  <ScalarOperator>
+                                                                    <Compare CompareOp="GE">
+                                                                      <ScalarOperator>
+                                                                        <Identifier>
+                                                                          <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="CreatedAtUtc"></ColumnReference>
+                                                                        </Identifier>
+                                                                      </ScalarOperator>
+                                                                      <ScalarOperator>
+                                                                        <Identifier>
+                                                                          <ColumnReference Column="@FromUtc"></ColumnReference>
+                                                                        </Identifier>
+                                                                      </ScalarOperator>
+                                                                    </Compare>
+                                                                  </ScalarOperator>
+                                                                  <ScalarOperator>
+                                                                    <Compare CompareOp="LT">
+                                                                      <ScalarOperator>
+                                                                        <Identifier>
+                                                                          <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="CreatedAtUtc"></ColumnReference>
+                                                                        </Identifier>
+                                                                      </ScalarOperator>
+                                                                      <ScalarOperator>
+                                                                        <Identifier>
+                                                                          <ColumnReference Column="@ToUtc"></ColumnReference>
+                                                                        </Identifier>
+                                                                      </ScalarOperator>
+                                                                    </Compare>
+                                                                  </ScalarOperator>
+                                                                </Logical>
+                                                              </ScalarOperator>
+                                                            </Predicate>
+                                                          </IndexScan>
+                                                        </RelOp>
+                                                      </ComputeScalar>
+                                                    </RelOp>
+                                                  </Sort>
+                                                </RelOp>
+                                                <RelOp NodeId="13" PhysicalOp="Clustered Index Seek" LogicalOp="Clustered Index Seek" EstimateRows="1" EstimatedRowsRead="1" EstimateIO="0.003125" EstimateCPU="0.0001581" AvgRowSize="334" EstimatedTotalSubtreeCost="80.615" TableCardinality="5e+06" Parallel="1" EstimateRebinds="28371.5" EstimateRewinds="0.00142092" EstimatedExecutionMode="Row">
+                                                  <OutputList>
+                                                    <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="Type"></ColumnReference>
+                                                    <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="ReferenceId"></ColumnReference>
+                                                    <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="Description"></ColumnReference>
+                                                  </OutputList>
+                                                  <RunTimeInformation>
+                                                    <RunTimeCountersPerThread Thread="16" ActualRows="610" Batches="0" ActualElapsedms="2" ActualCPUms="2" ActualScans="0" ActualLogicalReads="2299" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="610" ActualEndOfScans="0" ActualExecutions="610" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                    <RunTimeCountersPerThread Thread="15" ActualRows="514" Batches="0" ActualElapsedms="2" ActualCPUms="2" ActualScans="0" ActualLogicalReads="1933" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="514" ActualEndOfScans="0" ActualExecutions="514" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                    <RunTimeCountersPerThread Thread="14" ActualRows="819" Batches="0" ActualElapsedms="3" ActualCPUms="3" ActualScans="0" ActualLogicalReads="3096" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="819" ActualEndOfScans="0" ActualExecutions="819" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                    <RunTimeCountersPerThread Thread="13" ActualRows="586" Batches="0" ActualElapsedms="2" ActualCPUms="2" ActualScans="0" ActualLogicalReads="2209" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="586" ActualEndOfScans="0" ActualExecutions="586" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                    <RunTimeCountersPerThread Thread="12" ActualRows="377" Batches="0" ActualElapsedms="1" ActualCPUms="1" ActualScans="0" ActualLogicalReads="1412" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="377" ActualEndOfScans="0" ActualExecutions="377" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                    <RunTimeCountersPerThread Thread="11" ActualRows="379" Batches="0" ActualElapsedms="1" ActualCPUms="1" ActualScans="0" ActualLogicalReads="1420" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="379" ActualEndOfScans="0" ActualExecutions="379" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                    <RunTimeCountersPerThread Thread="10" ActualRows="387" Batches="0" ActualElapsedms="1" ActualCPUms="1" ActualScans="0" ActualLogicalReads="1449" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="387" ActualEndOfScans="0" ActualExecutions="387" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                    <RunTimeCountersPerThread Thread="9" ActualRows="611" Batches="0" ActualElapsedms="2" ActualCPUms="2" ActualScans="0" ActualLogicalReads="2303" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="611" ActualEndOfScans="0" ActualExecutions="611" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                    <RunTimeCountersPerThread Thread="8" ActualRows="759" Batches="0" ActualElapsedms="3" ActualCPUms="3" ActualScans="0" ActualLogicalReads="2868" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="759" ActualEndOfScans="0" ActualExecutions="759" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                    <RunTimeCountersPerThread Thread="7" ActualRows="413" Batches="0" ActualElapsedms="2" ActualCPUms="2" ActualScans="0" ActualLogicalReads="1550" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="413" ActualEndOfScans="0" ActualExecutions="413" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                    <RunTimeCountersPerThread Thread="6" ActualRows="376" Batches="0" ActualElapsedms="1" ActualCPUms="1" ActualScans="0" ActualLogicalReads="1408" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="376" ActualEndOfScans="0" ActualExecutions="376" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                    <RunTimeCountersPerThread Thread="5" ActualRows="428" Batches="0" ActualElapsedms="1" ActualCPUms="1" ActualScans="0" ActualLogicalReads="1607" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="428" ActualEndOfScans="0" ActualExecutions="428" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                    <RunTimeCountersPerThread Thread="4" ActualRows="217" Batches="0" ActualElapsedms="1" ActualCPUms="1" ActualScans="0" ActualLogicalReads="802" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="217" ActualEndOfScans="0" ActualExecutions="217" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                    <RunTimeCountersPerThread Thread="3" ActualRows="364" Batches="0" ActualElapsedms="1" ActualCPUms="1" ActualScans="0" ActualLogicalReads="1363" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="364" ActualEndOfScans="0" ActualExecutions="364" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                    <RunTimeCountersPerThread Thread="2" ActualRows="406" Batches="0" ActualElapsedms="1" ActualCPUms="1" ActualScans="0" ActualLogicalReads="1522" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="406" ActualEndOfScans="0" ActualExecutions="406" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                    <RunTimeCountersPerThread Thread="1" ActualRows="421" Batches="0" ActualElapsedms="1" ActualCPUms="1" ActualScans="0" ActualLogicalReads="1579" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualRowsRead="421" ActualEndOfScans="0" ActualExecutions="421" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                    <RunTimeCountersPerThread Thread="0" ActualRows="0" Batches="0" ActualElapsedms="0" ActualCPUms="0" ActualScans="0" ActualLogicalReads="0" ActualPhysicalReads="0" ActualReadAheads="0" ActualLobLogicalReads="0" ActualLobPhysicalReads="0" ActualLobReadAheads="0" ActualEndOfScans="0" ActualExecutions="0" ActualExecutionMode="Row"></RunTimeCountersPerThread>
+                                                  </RunTimeInformation>
+                                                  <IndexScan Ordered="1" ScanDirection="FORWARD" ForcedIndex="0" ForceSeek="0" ForceScan="0" NoExpandHint="0" Storage="RowStore">
+                                                    <DefinedValues>
+                                                      <DefinedValue>
+                                                        <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="Type"></ColumnReference>
+                                                      </DefinedValue>
+                                                      <DefinedValue>
+                                                        <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="ReferenceId"></ColumnReference>
+                                                      </DefinedValue>
+                                                      <DefinedValue>
+                                                        <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="Description"></ColumnReference>
+                                                      </DefinedValue>
+                                                    </DefinedValues>
+                                                    <Object Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Index="[PK_LedgerTransactions]" Alias="[t]" IndexKind="Clustered" Storage="RowStore"></Object>
+                                                    <SeekPredicates>
+                                                      <SeekPredicateNew>
+                                                        <SeekKeys>
+                                                          <Prefix ScanType="EQ">
+                                                            <RangeColumns>
+                                                              <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerTransactions]" Alias="[t]" Column="Id"></ColumnReference>
+                                                            </RangeColumns>
+                                                            <RangeExpressions>
+                                                              <ScalarOperator ScalarString="[LedgerCore].[dbo].[LedgerEntries].[TransactionId] as [e].[TransactionId]">
+                                                                <Identifier>
+                                                                  <ColumnReference Database="[LedgerCore]" Schema="[dbo]" Table="[LedgerEntries]" Alias="[e]" Column="TransactionId"></ColumnReference>
+                                                                </Identifier>
+                                                              </ScalarOperator>
+                                                            </RangeExpressions>
+                                                          </Prefix>
+                                                        </SeekKeys>
+                                                      </SeekPredicateNew>
+                                                    </SeekPredicates>
+                                                  </IndexScan>
+                                                </RelOp>
+                                              </NestedLoops>
+                                            </RelOp>
+                                          </Parallelism>
+                                        </RelOp>
+                                      </Segment>
+                                    </RelOp>
+                                  </SequenceProject>
+                                </RelOp>
+                              </Segment>
+                            </RelOp>
+                          </WindowSpool>
+                        </RelOp>
+                      </StreamAggregate>
+                    </RelOp>
+                  </ComputeScalar>
+                </RelOp>
+              </ComputeScalar>
+            </RelOp>
+            <ParameterList>
+              <ColumnReference Column="@OpeningBalance" ParameterDataType="decimal(19,4)" ParameterRuntimeValue="(4432448.3800)"></ColumnReference>
+              <ColumnReference Column="@ToUtc" ParameterDataType="datetime2(7)" ParameterCompiledValue="'2026-11-13 23:21:06.3370000'" ParameterRuntimeValue="'2026-11-13 23:21:06.3370000'"></ColumnReference>
+              <ColumnReference Column="@FromUtc" ParameterDataType="datetime2(7)" ParameterCompiledValue="'2026-10-14 23:21:06.3370000'" ParameterRuntimeValue="'2026-10-14 23:21:06.3370000'"></ColumnReference>
+              <ColumnReference Column="@AccountId" ParameterDataType="uniqueidentifier" ParameterCompiledValue="{guid'44DD4E6D-07C1-4175-8145-CE9AADA45067'}" ParameterRuntimeValue="{guid'44DD4E6D-07C1-4175-8145-CE9AADA45067'}"></ColumnReference>
+            </ParameterList>
+          </QueryPlan>
+        </StmtSimple>
+      </Statements>
+    </Batch>
+  </BatchSequence>
+</ShowPlanXML>
