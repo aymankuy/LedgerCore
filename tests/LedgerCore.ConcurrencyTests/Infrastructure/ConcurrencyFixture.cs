@@ -28,6 +28,8 @@ public sealed class ConcurrencyFixture : IAsyncLifetime
 
     private ServiceProvider? _services;
 
+    public string ConnectionString => _container.GetConnectionString();
+
     public async Task InitializeAsync()
     {
         await _container.StartAsync();

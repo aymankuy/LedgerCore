@@ -34,7 +34,9 @@ services:
       retries: 10
 
   api:
-    build: .
+    build:
+      context: .
+      target: api
     depends_on:
       mssql:
         condition: service_healthy
@@ -55,6 +57,21 @@ services:
       Database__SeedDemoData: "true"
       Database__DemoPassword: ${DEMO_PASSWORD:-demo-password}
       Jwt__SigningKey: ${JWT_SIGNING_KEY:-local-only-signing-key-not-for-any-deployment}
+
+  # Separately deployable (spec §4): dispatches the outbox and deletes expired idempotency keys.
+  # It starts after the API, which migrates the database; until then it logs and keeps polling.
+  worker:
+    build:
+      context: .
+      target: worker
+    depends_on:
+      api:
+        condition: service_started
+      redis:
+        condition: service_healthy
+    environment:
+      DOTNET_ENVIRONMENT: Development
+      ConnectionStrings__Ledger: "Server=mssql;Database=LedgerCore;User Id=ledgercore_app;Password=${APP_DB_PASSWORD:-LocalOnly_App_7k4!};TrustServerCertificate=True"
 
 volumes:
   mssql-data:

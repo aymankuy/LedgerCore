@@ -202,6 +202,8 @@ namespace LedgerCore.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Key");
 
+                    b.HasIndex("CreatedAtUtc");
+
                     b.ToTable("IdempotencyKeys", (string)null);
                 });
 
