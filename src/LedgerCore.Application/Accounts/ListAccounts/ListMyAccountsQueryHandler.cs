@@ -11,15 +11,10 @@ public sealed class ListMyAccountsQueryHandler(IDbConnectionFactory connectionFa
 {
     // The owner comes from the token, never from the request, so this cannot list anyone else's accounts.
     private const string Sql = """
-        SELECT a.Id AS AccountId,
-               a.Currency,
-               a.Status,
-               COALESCE(SUM(CASE e.Direction WHEN 2 THEN e.Amount ELSE -e.Amount END), 0) AS Balance,
-               a.CreatedAtUtc
+        SELECT a.Id AS AccountId, a.Currency, a.Status, b.Balance, a.CreatedAtUtc
         FROM dbo.Accounts AS a
-        LEFT JOIN dbo.LedgerEntries AS e ON e.AccountId = a.Id
+        CROSS APPLY dbo.fn_AccountBalance(a.Id) AS b
         WHERE a.OwnerUserId = @OwnerUserId AND a.Kind = 1
-        GROUP BY a.Id, a.Currency, a.Status, a.CreatedAtUtc
         ORDER BY a.CreatedAtUtc, a.Id;
         """;
 
