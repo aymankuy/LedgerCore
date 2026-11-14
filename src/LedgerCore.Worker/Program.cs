@@ -18,6 +18,14 @@ var connectionString = builder.Configuration.GetConnectionString("Ledger")
     ?? throw new InvalidOperationException("Connection string 'Ledger' is not configured.");
 
 builder.Services.AddInfrastructure(connectionString);
+
+// With Redis configured, every LedgerTransactionPosted event removes the cached balances of the
+// accounts it touched. Without it, the events are simply marked processed.
+if (builder.Configuration.GetConnectionString("Redis") is { Length: > 0 } redisConnectionString)
+{
+    builder.Services.AddRedisCache(redisConnectionString);
+}
+
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.Configure<OutboxOptions>(builder.Configuration.GetSection(OutboxOptions.SectionName));
 builder.Services.Configure<IdempotencyCleanupOptions>(builder.Configuration.GetSection(IdempotencyCleanupOptions.SectionName));

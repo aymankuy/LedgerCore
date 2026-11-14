@@ -11,7 +11,7 @@ namespace LedgerCore.IntegrationTests.Infrastructure;
 /// Hosts the real API in memory, configured the way docker compose configures it: startup
 /// migrations and seeding on, settings from configuration rather than appsettings files.
 /// </summary>
-public sealed class ApiFactory(string connectionString) : WebApplicationFactory<Program>
+public sealed class ApiFactory(string connectionString, string? redisConnectionString = null) : WebApplicationFactory<Program>
 {
     public const string AdminEmail = "admin@test.local";
     public const string Password = "integration-pass";
@@ -20,6 +20,13 @@ public sealed class ApiFactory(string connectionString) : WebApplicationFactory<
     {
         builder.UseEnvironment("Testing");
         builder.UseSetting("ConnectionStrings:Ledger", connectionString);
+
+        // No Redis unless a test asks for it: then balance reads are cached exactly as in compose.
+        if (redisConnectionString is not null)
+        {
+            builder.UseSetting("ConnectionStrings:Redis", redisConnectionString);
+        }
+
         builder.UseSetting("Jwt:SigningKey", "integration-test-signing-key-0123456789abcdef");
         builder.UseSetting("Database:MigrateOnStartup", "true");
         builder.UseSetting("Database:AdminEmail", AdminEmail);

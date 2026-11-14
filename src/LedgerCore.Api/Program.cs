@@ -30,6 +30,13 @@ builder.Services.AddSingleton(new FeeSchedule(feeRules));
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(connectionString);
+
+// Optional: without a Redis connection string every balance read goes to SQL Server.
+if (builder.Configuration.GetConnectionString("Redis") is { Length: > 0 } redisConnectionString)
+{
+    builder.Services.AddRedisCache(redisConnectionString);
+}
+
 builder.Services.Configure<DatabaseOptions>(builder.Configuration.GetSection(DatabaseOptions.SectionName));
 builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddScoped<IIdempotencyContext, HttpIdempotencyContext>();

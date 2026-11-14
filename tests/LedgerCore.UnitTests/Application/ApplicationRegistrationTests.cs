@@ -31,11 +31,12 @@ public class ApplicationRegistrationTests
 
         // Logging first, so rejected requests are logged too. A malformed account id must be a 400,
         // never reach the database lookup of the access check. Only a caller allowed to touch the
-        // account gets a transaction, and the idempotency key is claimed inside it.
+        // account gets a cached response or a transaction, and the idempotency key is claimed inside it.
         behaviors.Select(b => b.GetType().GetGenericTypeDefinition()).Should().Equal(
             typeof(LoggingBehavior<,>),
             typeof(ValidationBehavior<,>),
             typeof(AccountAccessBehavior<,>),
+            typeof(CachingBehavior<,>),
             typeof(TransactionBehavior<,>),
             typeof(IdempotencyBehavior<,>));
     }

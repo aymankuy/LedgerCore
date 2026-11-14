@@ -24,7 +24,7 @@ services:
       retries: 30
       start_period: 20s
 
-  # Not used by the API yet; the caching pipeline behaviour arrives in Phase 3.
+  # Balance read cache: the API fills it, the Worker clears entries when the ledger changes.
   redis:
     image: redis:7.4-alpine
     healthcheck:
@@ -48,6 +48,7 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       # The API runs as a least-privilege login; sa is used only to migrate and to create that login.
       ConnectionStrings__Ledger: "Server=mssql;Database=LedgerCore;User Id=ledgercore_app;Password=${APP_DB_PASSWORD:-LocalOnly_App_7k4!};TrustServerCertificate=True"
+      ConnectionStrings__Redis: redis:6379
       Database__MigrationConnectionString: "Server=mssql;Database=LedgerCore;User Id=sa;Password=${MSSQL_SA_PASSWORD:-LocalOnly_Sa_9x2!};TrustServerCertificate=True"
       Database__MigrateOnStartup: "true"
       Database__AppLogin: ledgercore_app
@@ -58,7 +59,8 @@ services:
       Database__DemoPassword: ${DEMO_PASSWORD:-demo-password}
       Jwt__SigningKey: ${JWT_SIGNING_KEY:-local-only-signing-key-not-for-any-deployment}
 
-  # Separately deployable (spec §4): dispatches the outbox and deletes expired idempotency keys.
+  # Separately deployable (spec §4): dispatches the outbox (clearing cached balances) and deletes
+  # expired idempotency keys.
   # It starts after the API, which migrates the database; until then it logs and keeps polling.
   worker:
     build:
@@ -72,6 +74,7 @@ services:
     environment:
       DOTNET_ENVIRONMENT: Development
       ConnectionStrings__Ledger: "Server=mssql;Database=LedgerCore;User Id=ledgercore_app;Password=${APP_DB_PASSWORD:-LocalOnly_App_7k4!};TrustServerCertificate=True"
+      ConnectionStrings__Redis: redis:6379
 
 volumes:
   mssql-data:
