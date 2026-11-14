@@ -1,16 +1,16 @@
 # LedgerCore: progress and plan
 
-Working notes for picking the project up again. The spec is [CLAUDE.md](CLAUDE.md); this file records where we are against it and how Phase 2 will be done.
+Working notes for picking the project up again. The spec is [CLAUDE.md](CLAUDE.md); this file records where we are against it and how each phase was done.
 
-Last updated: 2026-11-13. State: Phase 2 is complete on the `phase-2` branch and waits for its merge into `main` on [github.com/aymankuy/LedgerCore](https://github.com/aymankuy/LedgerCore).
+Last updated: 2026-11-14. State: Phases 1 and 2 are merged into `main`; Phase 3 is complete on the `phase-3` branch and waits for its merge on [github.com/aymankuy/LedgerCore](https://github.com/aymankuy/LedgerCore).
 
 ## Status by phase
 
 | Phase | Status |
 |---|---|
 | 1. Core | **Done.** All acceptance criteria verified (see below). |
-| 2. Correctness under concurrency | **Done** on `phase-2`. All acceptance criteria verified (see the checklist below). |
-| 3. Architecture (CQRS, behaviours, outbox, fee strategy) | Partly started: CQRS split and two pipeline behaviours already exist. |
+| 2. Correctness under concurrency | **Done**, merged (PR #1). All acceptance criteria verified (see the checklist below). |
+| 3. Architecture (CQRS, behaviours, outbox, fee strategy) | **Done** on `phase-3`. Acceptance criteria verified (see the Phase 3 outcome below). |
 | 4. Performance (10M rows, snapshots, indexes) | Not started |
 | 5. Cloud (Azure, Bicep, Key Vault, Function) | Not started |
 | 6. Data and BI (star schema, SSIS, ADF, Power BI) | Not started |
@@ -64,7 +64,7 @@ Last updated: 2026-11-13. State: Phase 2 is complete on the `phase-2` branch and
 - Withdraw and transfer are **deliberately naive**: the balance is read with no lock and no explicit transaction. Phase 2 exists to fix this, and the naive version is needed for the before/after.
 - Not every write endpoint handles `Idempotency-Key` yet (Phase 2). The `IdempotencyKeys` table and its EF mapping already exist.
 - `Accounts.RowVersion` exists in the schema, but nothing uses it yet (Phase 2).
-- Redis runs in compose but nothing uses it until the caching behaviour in Phase 3.
+- Redis runs in compose but nothing uses it until the caching behaviour in Phase 3. (Done in Phase 3.)
 - The Phase 5 secret scan must allow-list the local compose defaults (ADR 0004).
 - Commits are authored with a personal email, which is now public. We could switch to the GitHub noreply address.
 
@@ -144,6 +144,38 @@ Where it lives: an action filter or middleware on write endpoints, plus a store 
 - Added beyond the original plan: an admin freeze/unfreeze endpoint, so `Accounts.RowVersion` has a real use (ADR 0002).
 - Carried to Phase 3: a Worker job that deletes idempotency keys older than 24 hours. The `IdempotencyKeys.StatusCode` column stays empty by design (ADR 0005).
 - Verified: 20 consecutive runs of the concurrency suite, and `docker compose up --build` from a fresh clone of `phase-2`, with Swagger, replay, 409 and 400 checked by hand.
+
+## Phase 3: what was built (2026-11-14)
+
+Six steps, each a commit on `phase-3` with tests written alongside:
+
+1. **Transaction and logging behaviours.** `TransactionBehavior` opens the transaction for every `ICommand` (handlers no longer do); `LoggingBehavior` logs name, duration and outcome, never the payload.
+2. **Fee strategy.** `IFeePolicy` with flat, percentage and tiered rules, chosen per currency from the `Fees` configuration. The fee is a separate `Fee` ledger transaction to a seeded fee revenue account (`AccountKind.FeeRevenue`), posted in the transfer's transaction.
+3. **Outbox write.** `usp_PostLedgerTransaction` inserts a `LedgerTransactionPosted` row into `OutboxMessages` in the same transaction as the entries.
+4. **Worker.** `OutboxWorker` claims batches with `UPDLOCK, READPAST, ROWLOCK`, retries failures up to five attempts; `IdempotencyCleanupWorker` deletes keys older than 24 hours (carried over from Phase 2). Its own Docker stage and compose service. Hosted services instead of Hangfire: ADR 0006.
+5. **Redis balance cache.** `CachingBehavior` for `ICacheableQuery` (the balance query only), after the access check, falling back to SQL Server if Redis fails. The Worker's `BalanceCacheInvalidator` removes the balances a posting touched; entries also expire after one minute.
+6. **Docs.** [docs/architecture.md](docs/architecture.md) with the write path, read path and outbox diagrams; README pattern table and the dual-write paragraph; ADR 0007 (no mapping library).
+
+### Phase 3 acceptance, as verified
+
+- [x] Commands go through EF Core inside a transaction, queries through Dapper; the asymmetry is drawn in `docs/architecture.md`.
+- [x] Pipeline behaviours for validation, logging, transaction and caching, each a decorator; their order is tested.
+- [x] Outbox events written in the same transaction as the entries (a test proves they roll back together), dispatched by the Worker; README explains why dual-write is unsafe.
+- [x] Strategy pattern for flat, percentage and tiered fees.
+- [x] Repository and Unit of Work on the write side only; Dapper queries are not wrapped.
+- [x] `docs/architecture.md` has Mermaid diagrams of the write path and the read path.
+- [x] Every pattern is named in the README with one sentence.
+- [x] 132 unit, 46 integration and 6 concurrency tests green.
+- [x] Checked in Docker: a transfer charges 0.50, every outbox event is processed, cached balances are cleared by the Worker, and with Redis stopped the balance still answers in about 0.2 s.
+
+### Phase 3 findings and deviations
+
+- Without the lock hints, four parallel outbox dispatchers deadlocked in each of three runs.
+- With Redis down, the client queued each command for 5 seconds, so a balance read took about 12 s. `BacklogPolicy.FailFast` fixed it.
+- The Worker starts before the API has created its SQL login; the dispatcher heals within seconds, and the clean-up job retries after a minute instead of an hour.
+- Deviations from the pinned stack, each with an ADR: Hangfire deferred to Phase 4 (0006), Mapster not used (0007).
+- Not added on purpose: an `AccountStatusChanged` event, because nothing consumes it yet. Phase 6 (SCD2) may want it.
+- Cached balances can be up to about a second stale after a posting, until the Worker's next poll. This is tested and documented, and money movements never read the cache.
 
 ## How we work
 

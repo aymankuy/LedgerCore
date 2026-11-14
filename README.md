@@ -11,20 +11,23 @@ A double-entry wallet and payment ledger API: accounts hold money, every movemen
 ```mermaid
 flowchart LR
     Client -->|JWT| Api[ASP.NET Core API<br/>controllers, ProblemDetails,<br/>correlation id]
-    Api -->|MediatR| Pipeline[Pipeline behaviours<br/>validation, then account access]
+    Api -->|MediatR| Pipeline[Pipeline behaviours<br/>logging, validation, account access,<br/>caching, transaction, idempotency]
     Pipeline --> Commands[Command handlers]
     Pipeline --> Queries[Query handlers]
+    Pipeline <-->|cached balances| Redis[(Redis)]
     Commands -->|EF Core: accounts, users| Db[(SQL Server)]
-    Commands -->|usp_PostLedgerTransaction<br/>one TVP insert| Db
+    Commands -->|usp_PostLedgerTransaction<br/>entries + outbox event| Db
     Queries -->|Dapper + hand-written T-SQL| Db
     Db --- Rules[Triggers: append-only,<br/>net-zero per transaction]
+    Worker[Worker<br/>outbox dispatcher,<br/>key clean-up] -->|claims OutboxMessages| Db
+    Worker -->|removes stale balances| Redis
 ```
 
-The write side goes through EF Core and a stored procedure; the read side is Dapper over plain SQL. Domain ← Application ← Infrastructure ← Api, with dependencies pointing inward only.
+The write side goes through EF Core and a stored procedure inside one transaction; the read side is Dapper over plain SQL. A separately deployed Worker reacts to committed postings through the outbox. Domain ← Application ← Infrastructure ← Api / Worker, with dependencies pointing inward only. The write path, the read path and the outbox are drawn step by step in [docs/architecture.md](docs/architecture.md).
 
 ## Why I built this
 
-Moving money looks like simple arithmetic until two requests touch the same balance at the same moment, a client retries a request that already succeeded, or a bug writes half a transaction. LedgerCore is my answer to those problems with the guarantees pushed down into the database: no stored balance that can drift, ledger rows that cannot be updated or deleted, and transactions that are rejected unless they net to exactly zero. Phase 2 adds the concurrency side: locking, idempotency keys and deadlock-safe transfers, each proven by tests against a real SQL Server.
+Moving money looks like simple arithmetic until two requests touch the same balance at the same moment, a client retries a request that already succeeded, or a bug writes half a transaction. LedgerCore is my answer to those problems with the guarantees pushed down into the database: no stored balance that can drift, ledger rows that cannot be updated or deleted, and transactions that are rejected unless they net to exactly zero. On top of that come the concurrency guarantees (locking, idempotency keys, deadlock-safe transfers) and the architecture that keeps them in one place (a MediatR pipeline, an outbox, a cache that can never be read by a money movement), each proven by tests against a real SQL Server.
 
 ## Tech stack
 
@@ -35,6 +38,7 @@ Moving money looks like simple arithmetic until two requests touch the same bala
 ![SQL Server 2022](https://img.shields.io/badge/SQL_Server-2022-CC2927)
 ![MediatR](https://img.shields.io/badge/MediatR-12-555)
 ![FluentValidation](https://img.shields.io/badge/FluentValidation-12-555)
+![Redis](https://img.shields.io/badge/Redis-cache-DC382D)
 ![Serilog](https://img.shields.io/badge/Serilog-JSON-555)
 ![xUnit](https://img.shields.io/badge/xUnit-Testcontainers-555)
 ![Docker](https://img.shields.io/badge/Docker-compose-2496ED)
@@ -47,7 +51,7 @@ Requires Docker.
 docker compose up --build
 ```
 
-Then open **http://localhost:8080/swagger**. On first start the API migrates the database, creates a least-privilege SQL login for itself, and seeds demo data.
+Then open **http://localhost:8080/swagger**. On first start the API migrates the database, creates a least-privilege SQL login for itself, and seeds demo data. Compose also starts Redis and the Worker, which dispatches the outbox; for its first few seconds, until the API has created the login, the Worker logs failed logins and retries.
 
 | User | Password | Notes |
 |---|---|---|
@@ -117,6 +121,12 @@ Transfers locking the source first:
 
 The first run surfaced a bug nobody was looking for. Before any balance logic was involved, the tests deadlocked inside the Phase 1 net-zero trigger, which scanned an index and waited on other transactions' uncommitted rows. A covering index and a seek-only trigger fixed it ([ADR 0001](docs/decisions/0001-net-zero-enforcement.md), amendment).
 
+## Why an outbox, not "save, then notify"
+
+When money moves, the cached balances of the accounts involved must go. The obvious way is a dual write: commit the ledger entries, then delete the Redis keys. But no transaction spans SQL Server and Redis. If the process crashes, is redeployed or loses Redis between the two steps, the money has moved and the cache keeps serving the old balance, and nothing records that a clean-up is still owed. Deleting first is no better, because a reader can refill the key with the old balance before the commit.
+
+So `usp_PostLedgerTransaction` writes a `LedgerTransactionPosted` row to `OutboxMessages` in the same transaction as the entries: the event exists if and only if the money moved. The Worker claims unprocessed rows with `UPDLOCK, READPAST`, so several Workers never take the same row, removes the affected balance keys, and marks each row processed. A failure is retried on the next poll, up to five attempts. Delivery is at least once, so handlers must be safe to repeat; removing a key twice is harmless. A one-minute expiry on every cached balance bounds the last remaining race: a slow reader that loaded the old balance just before the commit. Each step is drawn in [docs/architecture.md](docs/architecture.md#after-the-commit-outbox-and-worker).
+
 ## Performance
 
 _Phase 4._ Statement query on a hot account at 10 million ledger entries, before and after indexing.
@@ -131,7 +141,15 @@ _Phase 4._ Statement query on a hot account at 10 million ledger entries, before
 | Least-privilege application login | Without `ALTER` it cannot `TRUNCATE` ledger entries, which would bypass the triggers. |
 | `Accounts.Kind` (customer / settlement) | Deposits and withdrawals need a counterpart account so they still net to zero ([ADR 0003](docs/decisions/0003-account-kind.md)). |
 | CQRS: EF Core writes, Dapper reads | Writes need change tracking and transactions; reads such as the running-balance statement are better written as T-SQL. |
-| MediatR pipeline behaviours | Validation, the "only your own accounts" rule and idempotency run once for every request, so no controller can forget them. |
+| MediatR pipeline behaviours (decorators) | Logging, validation, the "only your own accounts" rule, caching, the transaction and idempotency each wrap every request once, so no handler can forget one. |
+| Transaction behaviour | Every command runs in one `READ COMMITTED` transaction with a deadlock retry, so the idempotency claim, the entries and the outbox event commit together. |
+| Strategy pattern for fees (flat / percentage / tiered) | Each currency's fee rule comes from configuration, and the transfer handler asks "what is the fee?" without knowing which rule applies. |
+| Fee as its own ledger transaction to a fee revenue account | The fee is visible in the ledger, nets to zero like everything else, and commits only with its transfer. |
+| Outbox | Telling the cache (and later other systems) that money moved happens if and only if the money moved; see above. |
+| Separate Worker deployable | Dispatching and clean-up can be restarted, scaled or paused without touching request handling. |
+| Hosted services instead of Hangfire, for now | The dispatcher is a tight polling loop, and the outbox rows already record what a job framework would ([ADR 0006](docs/decisions/0006-background-jobs-without-hangfire.md)). |
+| Redis cache for the balance query only | Balance is a full sum over the ledger, read often and changed rarely; money movements never read it, and an outage falls back to SQL Server. |
+| No mapping library | Dapper maps straight onto response records and domain objects are built only through rule-checking factory methods, so there is nothing to map ([ADR 0007](docs/decisions/0007-no-mapping-library.md)). |
 | Pessimistic lock for money, optimistic `RowVersion` for status | Movements on one account are frequent and must queue; status changes are rare, so a conflict check is cheaper than a lock. |
 | Polly retry on deadlock (error 1205) | Lock ordering prevents the deadlocks we know about; the retry covers the ones we do not. |
 | Repository + Unit of Work on the write side only | They group a command's changes into one commit; wrapping Dapper queries in repositories would add nothing. |
