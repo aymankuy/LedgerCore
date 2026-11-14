@@ -1,5 +1,6 @@
 using LedgerCore.Application.Abstractions.Persistence;
 using LedgerCore.Application.Common;
+using LedgerCore.Application.Ledger.Fees;
 using LedgerCore.Domain.Accounts;
 using LedgerCore.Domain.Ledger;
 using MediatR;
@@ -10,9 +11,10 @@ namespace LedgerCore.Application.Ledger.Transfer;
 public sealed class TransferMoneyCommandHandler(
     IAccountRepository accounts,
     ILedgerRepository ledger,
-    TimeProvider timeProvider) : IRequestHandler<TransferMoneyCommand, Guid>
+    FeeSchedule fees,
+    TimeProvider timeProvider) : IRequestHandler<TransferMoneyCommand, TransferResult>
 {
-    public async Task<Guid> Handle(TransferMoneyCommand command, CancellationToken cancellationToken)
+    public async Task<TransferResult> Handle(TransferMoneyCommand command, CancellationToken cancellationToken)
     {
         // Both accounts are locked: the source because its balance is checked, the destination
         // so its status cannot change while money moves into it. They are always locked in
@@ -33,18 +35,36 @@ public sealed class TransferMoneyCommandHandler(
             : (secondAccount, firstAccount);
 
         var sourceBalance = await ledger.GetBalanceAsync(source.Id, cancellationToken);
+        var now = timeProvider.GetUtcNow().UtcDateTime;
 
-        var transaction = LedgerTransaction.Transfer(
+        var transfer = LedgerTransaction.Transfer(
             source,
             sourceBalance,
             destination,
             command.Amount,
-            timeProvider.GetUtcNow().UtcDateTime,
+            now,
             command.ReferenceId,
             command.Description);
 
-        await ledger.PostAsync(transaction, cancellationToken);
+        // Both transactions are built before either is posted, so a balance that covers the
+        // amount but not the fee rejects the whole transfer with insufficient funds.
+        var fee = fees.For(source.Currency).Calculate(command.Amount);
+        var feeTransaction = fee > 0m
+            ? LedgerTransaction.Fee(
+                source, sourceBalance - command.Amount, await GetFeeRevenueAsync(source, cancellationToken), fee, now, transfer.Id)
+            : null;
 
-        return transaction.Id;
+        await ledger.PostAsync(transfer, cancellationToken);
+        if (feeTransaction is not null)
+        {
+            await ledger.PostAsync(feeTransaction, cancellationToken);
+        }
+
+        return new TransferResult(transfer.Id, fee);
     }
+
+    // Not locked: the fee revenue account is only ever credited, never balance-checked.
+    private async Task<Account> GetFeeRevenueAsync(Account source, CancellationToken cancellationToken) =>
+        await accounts.GetFeeRevenueAsync(source.Currency, cancellationToken)
+        ?? throw new InvalidOperationException($"No fee revenue account exists for {source.Currency}.");
 }

@@ -66,7 +66,7 @@ In Swagger: call `POST /api/auth/login`, copy the `token`, click **Authorize** a
 | GET | `/api/accounts/{id}/balance` | Balance derived from the ledger |
 | GET | `/api/accounts/{id}/statement?from=&to=` | Entries with running balance, default last 30 days |
 | POST | `/api/accounts/{id}/deposits`, `/withdrawals` | Money in and out through the settlement account |
-| POST | `/api/transfers` | Between customer accounts |
+| POST | `/api/transfers` | Between customer accounts; the sender also pays the currency's transfer fee |
 | POST | `/api/accounts/{id}/freeze`, `/unfreeze` | Admin only: block or allow money movements on an account |
 
 Every write except login requires an `Idempotency-Key` header. Sending the same key again returns the first response without running the request twice; the same key with a different request returns 409. Keys are per user.

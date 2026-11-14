@@ -119,6 +119,12 @@ internal sealed class DatabaseInitializer(
                 db.Accounts.Add(Account.OpenSettlement(system.Id, currency, now));
                 logger.LogInformation("Seeded settlement account for {Currency}", code);
             }
+
+            if (!await db.Accounts.AnyAsync(a => a.Kind == AccountKind.FeeRevenue && a.Currency == currency, cancellationToken))
+            {
+                db.Accounts.Add(Account.OpenFeeRevenue(system.Id, currency, now));
+                logger.LogInformation("Seeded fee revenue account for {Currency}", code);
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(_options.AdminEmail) && !string.IsNullOrWhiteSpace(_options.AdminPassword))

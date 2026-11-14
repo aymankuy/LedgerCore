@@ -26,6 +26,7 @@ public sealed class DatabaseInitializerTests(SqlServerFixture fixture)
         await using var db = fixture.CreateDbContext();
         var eur = Currency.From("EUR");
         (await db.Accounts.CountAsync(a => a.Kind == AccountKind.Settlement && a.Currency == eur)).Should().Be(1);
+        (await db.Accounts.CountAsync(a => a.Kind == AccountKind.FeeRevenue && a.Currency == eur)).Should().Be(1);
         (await db.Users.CountAsync(u => u.Email == SeedUsers.SystemEmail)).Should().Be(1);
         (await db.Users.CountAsync(u => SeedUsers.DemoEmails.Contains(u.Email))).Should().Be(2);
     }

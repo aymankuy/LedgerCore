@@ -28,5 +28,8 @@ internal sealed class AccountRepository(LedgerDbContext db) : IAccountRepository
     public Task<Account?> GetSettlementAsync(Currency currency, CancellationToken cancellationToken) =>
         db.Accounts.SingleOrDefaultAsync(a => a.Kind == AccountKind.Settlement && a.Currency == currency, cancellationToken);
 
+    public Task<Account?> GetFeeRevenueAsync(Currency currency, CancellationToken cancellationToken) =>
+        db.Accounts.SingleOrDefaultAsync(a => a.Kind == AccountKind.FeeRevenue && a.Currency == currency, cancellationToken);
+
     public void Add(Account account) => db.Accounts.Add(account);
 }

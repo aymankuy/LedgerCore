@@ -10,4 +10,10 @@ public enum AccountKind : byte
     /// One per currency; its balance mirrors the total held in customer accounts.
     /// </summary>
     Settlement = 2,
+
+    /// <summary>
+    /// The platform's income from transfer fees. One per currency; it is only ever credited,
+    /// so its balance is the fee revenue to date.
+    /// </summary>
+    FeeRevenue = 3,
 }

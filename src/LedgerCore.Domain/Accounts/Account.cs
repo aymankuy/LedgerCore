@@ -50,6 +50,14 @@ public sealed class Account
         return account;
     }
 
+    /// <summary>Opens the account that collects transfer fees for a currency. It is only ever credited.</summary>
+    public static Account OpenFeeRevenue(Guid systemUserId, Currency currency, DateTime utcNow)
+    {
+        var account = Open(systemUserId, currency, utcNow);
+        account.Kind = AccountKind.FeeRevenue;
+        return account;
+    }
+
     public bool IsOwnedBy(Guid userId) => OwnerUserId == userId;
 
     public void EnsureCanTransact()

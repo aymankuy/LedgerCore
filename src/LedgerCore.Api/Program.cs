@@ -5,6 +5,7 @@ using LedgerCore.Api.Logging;
 using LedgerCore.Api.OpenApi;
 using LedgerCore.Application;
 using LedgerCore.Application.Abstractions.Idempotency;
+using LedgerCore.Application.Ledger.Fees;
 using LedgerCore.Infrastructure;
 using LedgerCore.Infrastructure.Persistence.Seeding;
 using Serilog;
@@ -22,6 +23,10 @@ builder.Services.AddSerilog((services, logger) => logger
 // Never in appsettings.json: comes from user secrets locally and the environment in containers.
 var connectionString = builder.Configuration.GetConnectionString("Ledger")
     ?? throw new InvalidOperationException("Connection string 'Ledger' is not configured.");
+
+// Before AddApplication, which otherwise registers a schedule without fees.
+var feeRules = builder.Configuration.GetSection("Fees").Get<Dictionary<string, FeeRule>>() ?? [];
+builder.Services.AddSingleton(new FeeSchedule(feeRules));
 
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(connectionString);

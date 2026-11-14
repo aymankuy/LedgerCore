@@ -17,5 +17,8 @@ public interface IAccountRepository
     /// <summary>The platform's counterpart account for deposits and withdrawals in this currency.</summary>
     Task<Account?> GetSettlementAsync(Currency currency, CancellationToken cancellationToken);
 
+    /// <summary>The platform's account that collects transfer fees in this currency.</summary>
+    Task<Account?> GetFeeRevenueAsync(Currency currency, CancellationToken cancellationToken);
+
     void Add(Account account);
 }

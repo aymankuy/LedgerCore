@@ -1,6 +1,8 @@
 using FluentValidation;
 using LedgerCore.Application.Behaviors;
+using LedgerCore.Application.Ledger.Fees;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace LedgerCore.Application;
 
@@ -27,6 +29,9 @@ public static class DependencyInjection
         // Error messages are part of the API contract, so they stay English whatever the
         // server culture is (FluentValidation would otherwise localise them).
         ValidatorOptions.Global.LanguageManager.Enabled = false;
+
+        // No transfer fees unless the host registers a configured schedule before this call.
+        services.TryAddSingleton(FeeSchedule.None);
 
         // The system clock; tests substitute their own TimeProvider.
         services.AddSingleton(TimeProvider.System);
