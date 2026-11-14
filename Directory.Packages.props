@@ -14,6 +14,9 @@
     <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.20" />
     <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="9.0.10" />
   </ItemGroup>
+  <ItemGroup Label="Test data">
+    <PackageVersion Include="Bogus" Version="35.6.5" />
+  </ItemGroup>
   <ItemGroup Label="Persistence">
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.20" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.20" />

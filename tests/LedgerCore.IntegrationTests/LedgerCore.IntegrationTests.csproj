@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\LedgerCore.Api\LedgerCore.Api.csproj" />
+    <ProjectReference Include="..\..\tools\LedgerCore.DataGenerator\LedgerCore.DataGenerator.csproj" />
   </ItemGroup>
 
 </Project>
