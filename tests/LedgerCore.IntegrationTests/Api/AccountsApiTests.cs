@@ -103,6 +103,25 @@ public sealed class AccountsApiTests(SqlServerFixture fixture)
     }
 
     [Fact]
+    public async Task A_transfer_the_balance_covers_but_not_with_its_fee_returns_422()
+    {
+        var alice = await Api.CreateUserClientAsync();
+        var source = await OpenFundedAccountAsync(alice, 50m);
+        var destination = await OpenAccountAsync(await Api.CreateUserClientAsync());
+
+        var response = await alice.PostAsJsonAsync("/api/transfers", new
+        {
+            sourceAccountId = source,
+            destinationAccountId = destination,
+            amount = 50m,
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+        (await ProblemCodeAsync(response)).Should().Be("insufficient_funds");
+        (await GetBalanceAsync(alice, source)).Should().Be(50m);
+    }
+
+    [Fact]
     public async Task Invalid_amount_returns_400_with_field_errors()
     {
         var alice = await Api.CreateUserClientAsync();
@@ -132,12 +151,16 @@ public sealed class AccountsApiTests(SqlServerFixture fixture)
         });
         transfer.StatusCode.Should().Be(HttpStatusCode.Created);
 
+        // EUR transfers cost 0.5% with a 0.50 minimum (appsettings.json): 0.30 becomes 0.50,
+        // paid by the sender on top of the amount. The receiver gets the full 60.
+        (await transfer.Content.ReadFromJsonAsync<TransferCreatedResponse>())!.Fee.Should().Be(0.50m);
+
         var accounts = await alice.GetFromJsonAsync<List<AccountSummary>>("/api/accounts");
-        accounts.Should().ContainSingle().Which.Balance.Should().Be(140m);
+        accounts.Should().ContainSingle().Which.Balance.Should().Be(139.50m);
 
         var statement = await alice.GetFromJsonAsync<AccountStatementResponse>($"/api/accounts/{aliceAccount}/statement");
-        statement!.Lines.Select(l => l.Amount).Should().Equal(200m, -60m);
-        statement.ClosingBalance.Should().Be(140m);
+        statement!.Lines.Select(l => l.Amount).Should().Equal(200m, -60m, -0.50m);
+        statement.ClosingBalance.Should().Be(139.50m);
         (await GetBalanceAsync(bob, bobAccount)).Should().Be(60m);
     }
 

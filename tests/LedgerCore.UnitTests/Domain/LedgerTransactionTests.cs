@@ -153,4 +153,16 @@ public class LedgerTransactionTests
         transaction.CreatedAtUtc.Should().Be(Now.AddMilliseconds(123));
         transaction.Entries.Should().AllSatisfy(e => e.CreatedAtUtc.Should().Be(transaction.CreatedAtUtc));
     }
+
+    [Fact]
+    public void Posted_event_names_the_transaction_and_each_account_once()
+    {
+        var source = Customer();
+        var destination = Customer();
+
+        var transfer = LedgerTransaction.Transfer(source, 100m, destination, 10m, Now);
+
+        transfer.PostedEvent.Should().BeEquivalentTo(
+            new LedgerTransactionPosted(transfer.Id, TransactionType.Transfer, [source.Id, destination.Id]));
+    }
 }

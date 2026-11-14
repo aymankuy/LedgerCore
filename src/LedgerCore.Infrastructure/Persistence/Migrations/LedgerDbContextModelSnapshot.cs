@@ -67,9 +67,13 @@ namespace LedgerCore.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("OwnerUserId");
 
+                    b.HasIndex(new[] { "Currency" }, "UX_Accounts_FeeRevenuePerCurrency")
+                        .IsUnique()
+                        .HasFilter("[Kind] = 3");
+
                     b.ToTable("Accounts", null, t =>
                         {
-                            t.HasCheckConstraint("CK_Accounts_Kind", "[Kind] IN (1, 2)");
+                            t.HasCheckConstraint("CK_Accounts_Kind", "[Kind] IN (1, 2, 3)");
 
                             t.HasCheckConstraint("CK_Accounts_Status", "[Status] IN (1, 2, 3)");
                         });
@@ -197,6 +201,8 @@ namespace LedgerCore.Infrastructure.Persistence.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Key");
+
+                    b.HasIndex("CreatedAtUtc");
 
                     b.ToTable("IdempotencyKeys", (string)null);
                 });

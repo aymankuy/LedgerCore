@@ -24,5 +24,9 @@ internal sealed class IdempotencyRecordConfiguration : IEntityTypeConfiguration<
         builder.Property(r => r.ResponseBody);
         builder.Property(r => r.StatusCode);
         builder.Property(r => r.CreatedAtUtc).IsRequired();
+
+        // The Worker deletes keys older than 24 hours every hour; without this index each run
+        // would scan the whole table.
+        builder.HasIndex(r => r.CreatedAtUtc);
     }
 }

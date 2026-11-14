@@ -14,4 +14,7 @@ internal static class TestAccounts
 
     public static Account Settlement(string currency = "EUR") =>
         Account.OpenSettlement(Guid.NewGuid(), Currency.From(currency), Now);
+
+    public static Account FeeRevenue(string currency = "EUR") =>
+        Account.OpenFeeRevenue(Guid.NewGuid(), Currency.From(currency), Now);
 }

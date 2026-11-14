@@ -13,7 +13,7 @@ internal sealed class AccountConfiguration : IEntityTypeConfiguration<Account>
         builder.ToTable("Accounts", t =>
         {
             t.HasCheckConstraint("CK_Accounts_Status", "[Status] IN (1, 2, 3)");
-            t.HasCheckConstraint("CK_Accounts_Kind", "[Kind] IN (1, 2)");
+            t.HasCheckConstraint("CK_Accounts_Kind", "[Kind] IN (1, 2, 3)");
         });
 
         builder.HasKey(a => a.Id);
@@ -36,6 +36,12 @@ internal sealed class AccountConfiguration : IEntityTypeConfiguration<Account>
             .IsUnique()
             .HasFilter("[Kind] = 2")
             .HasDatabaseName("UX_Accounts_SettlementPerCurrency");
+
+        // Likewise one fee revenue account per currency. EF Core keys indexes by their columns, so
+        // a second filtered index on Currency needs its own name to be kept apart from the first.
+        builder.HasIndex(a => a.Currency, "UX_Accounts_FeeRevenuePerCurrency")
+            .IsUnique()
+            .HasFilter("[Kind] = 3");
 
         // Shadow property: the database needs it for optimistic concurrency, the domain does not.
         builder.Property<byte[]>("RowVersion").IsRowVersion();

@@ -1,4 +1,5 @@
 using System.Data;
+using System.Text.Json;
 using LedgerCore.Application.Abstractions.Persistence;
 using LedgerCore.Domain.Ledger;
 using Microsoft.Data.SqlClient;
@@ -32,11 +33,16 @@ internal sealed class LedgerRepository(LedgerDbContext db) : ILedgerRepository
             new("@Description", (object?)transaction.Description ?? DBNull.Value),
             new("@CreatedAtUtc", SqlDbType.DateTime2) { Scale = 3, Value = transaction.CreatedAtUtc },
             new("@Entries", SqlDbType.Structured) { TypeName = "dbo.LedgerEntryList", Value = entries },
+
+            // The outbox row: the procedure writes it in the same transaction as the entries.
+            new("@EventId", Guid.NewGuid()),
+            new("@EventType", SqlDbType.NVarChar, 256) { Value = nameof(LedgerTransactionPosted) },
+            new("@EventPayload", SqlDbType.NVarChar, -1) { Value = JsonSerializer.Serialize(transaction.PostedEvent) },
         ];
 
         // ExecuteSql joins the DbContext's current transaction, if one is open.
         await db.Database.ExecuteSqlRawAsync(
-            "EXEC dbo.usp_PostLedgerTransaction @TransactionId, @Type, @ReferenceId, @Description, @CreatedAtUtc, @Entries",
+            "EXEC dbo.usp_PostLedgerTransaction @TransactionId, @Type, @ReferenceId, @Description, @CreatedAtUtc, @Entries, @EventId, @EventType, @EventPayload",
             parameters,
             cancellationToken);
     }

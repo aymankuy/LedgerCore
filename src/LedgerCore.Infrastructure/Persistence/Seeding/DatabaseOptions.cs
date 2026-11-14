@@ -25,7 +25,10 @@ public sealed class DatabaseOptions
 
     public string? AppLoginPassword { get; set; }
 
-    /// <summary>Currencies that get a settlement account, so deposits and withdrawals work.</summary>
+    /// <summary>
+    /// Currencies that get a settlement account, so deposits and withdrawals work, and a fee
+    /// revenue account, so transfers can be charged a fee.
+    /// </summary>
     public string[] SettlementCurrencies { get; set; } = ["EUR", "USD", "TRY"];
 
     public string? AdminEmail { get; set; }

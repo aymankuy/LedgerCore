@@ -26,6 +26,10 @@ public sealed class LedgerTransaction
     /// <summary>Sum of signed entry amounts. Always zero for a valid transaction.</summary>
     public decimal Net => _entries.Sum(e => e.SignedAmount);
 
+    /// <summary>The event that announces this transaction once it is posted.</summary>
+    public LedgerTransactionPosted PostedEvent =>
+        new(Id, Type, _entries.Select(e => e.AccountId).Distinct().ToList());
+
     private LedgerTransaction()
     {
     }
@@ -81,6 +85,28 @@ public sealed class LedgerTransaction
         source.EnsureCanBeDebited(sourceBalance, amount);
 
         return Create(TransactionType.Transfer, source.Id, destination.Id, amount, utcNow, referenceId, description);
+    }
+
+    /// <summary>
+    /// The fee for a transfer: the payer is debited and the fee revenue account credited.
+    /// It is a transaction of its own, so fee revenue can be reported by type, and it is posted
+    /// in the same database transaction as the transfer it belongs to.
+    /// </summary>
+    /// <param name="payerBalance">The payer's balance after the transfer the fee is charged for.</param>
+    public static LedgerTransaction Fee(
+        Account payer, decimal payerBalance, Account feeRevenue, decimal fee, DateTime utcNow, Guid transferId)
+    {
+        if (feeRevenue.Kind != AccountKind.FeeRevenue)
+        {
+            throw new DomainValidationException("Fees must be credited to a fee revenue account.");
+        }
+
+        EnsureSameCurrency(payer, feeRevenue);
+        payer.EnsureCanBeDebited(payerBalance, fee);
+
+        return Create(
+            TransactionType.Fee, payer.Id, feeRevenue.Id, fee, utcNow,
+            referenceId: transferId.ToString(), description: "Transfer fee");
     }
 
     private static LedgerTransaction Create(

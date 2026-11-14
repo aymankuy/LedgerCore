@@ -8,6 +8,7 @@
     </PackageReference>
     <PackageReference Include="Microsoft.Extensions.Identity.Core" />
     <PackageReference Include="Polly.Core" />
+    <PackageReference Include="StackExchange.Redis" />
   </ItemGroup>
 
   <ItemGroup>
