@@ -42,6 +42,7 @@ public sealed class ConcurrencyFixture : IAsyncLifetime
         _services = new ServiceCollection()
             .AddApplication()
             .AddInfrastructure(_container.GetConnectionString())
+            .AddLogging()
             .AddSingleton<ICurrentUser>(new AdminUser())
             .AddScoped<TestIdempotencyContext>()
             .AddScoped<IIdempotencyContext>(sp => sp.GetRequiredService<TestIdempotencyContext>())

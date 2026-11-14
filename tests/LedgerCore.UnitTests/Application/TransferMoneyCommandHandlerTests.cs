@@ -10,7 +10,6 @@ namespace LedgerCore.UnitTests.Application;
 
 public class TransferMoneyCommandHandlerTests
 {
-    private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly IAccountRepository _accounts = Substitute.For<IAccountRepository>();
     private readonly ILedgerRepository _ledger = Substitute.For<ILedgerRepository>();
     private readonly TimeProvider _time = Substitute.For<TimeProvider>();
@@ -24,11 +23,7 @@ public class TransferMoneyCommandHandlerTests
         _time.GetUtcNow().Returns(new DateTimeOffset(TestAccounts.Now));
         _accounts.GetByIdForUpdateAsync(_source.Id, Arg.Any<CancellationToken>()).Returns(_source);
         _accounts.GetByIdForUpdateAsync(_destination.Id, Arg.Any<CancellationToken>()).Returns(_destination);
-        _handler = new TransferMoneyCommandHandler(_unitOfWork, _accounts, _ledger, _time);
-
-        // Runs the work directly, as a real transaction would before committing.
-        _unitOfWork.ExecuteInTransactionAsync(Arg.Any<Func<Task<Guid>>>(), Arg.Any<CancellationToken>())
-            .Returns(call => call.Arg<Func<Task<Guid>>>()());
+        _handler = new TransferMoneyCommandHandler(_accounts, _ledger, _time);
     }
 
     [Fact]

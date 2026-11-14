@@ -2,7 +2,6 @@ using System.Text.Json;
 using FluentValidation;
 using LedgerCore.Application.Abstractions.Authentication;
 using LedgerCore.Application.Abstractions.Idempotency;
-using LedgerCore.Application.Abstractions.Persistence;
 using LedgerCore.Application.Accounts.GetBalance;
 using LedgerCore.Application.Behaviors;
 using LedgerCore.Application.Common;
@@ -17,7 +16,6 @@ public class IdempotencyBehaviorTests
     private readonly IIdempotencyContext _context = Substitute.For<IIdempotencyContext>();
     private readonly IIdempotencyStore _store = Substitute.For<IIdempotencyStore>();
     private readonly ICurrentUser _currentUser = Substitute.For<ICurrentUser>();
-    private readonly IUnitOfWork _unitOfWork = Substitute.For<IUnitOfWork>();
     private readonly Guid _userId = Guid.NewGuid();
     private readonly Guid _handlerResult = Guid.NewGuid();
     private readonly DepositCommand _deposit = new(Guid.NewGuid(), 10m);
@@ -28,8 +26,6 @@ public class IdempotencyBehaviorTests
         _context.Key.Returns("key-1");
         _currentUser.IsAuthenticated.Returns(true);
         _currentUser.UserId.Returns(_userId);
-        _unitOfWork.ExecuteInTransactionAsync(Arg.Any<Func<Task<Guid>>>(), Arg.Any<CancellationToken>())
-            .Returns(call => call.Arg<Func<Task<Guid>>>()());
     }
 
     [Fact]
@@ -117,7 +113,7 @@ public class IdempotencyBehaviorTests
 
     private IdempotencyBehavior<TRequest, TResponse> Behavior<TRequest, TResponse>()
         where TRequest : notnull =>
-        new(_context, _store, _currentUser, _unitOfWork);
+        new(_context, _store, _currentUser);
 
     private RequestHandlerDelegate<Guid> Next() => _ =>
     {

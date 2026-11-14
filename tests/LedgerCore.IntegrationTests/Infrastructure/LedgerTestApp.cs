@@ -28,7 +28,8 @@ public sealed class LedgerTestApp(SqlServerFixture fixture)
     {
         var services = new ServiceCollection()
             .AddApplication()
-            .AddInfrastructure(fixture.ConnectionString);
+            .AddInfrastructure(fixture.ConnectionString)
+            .AddLogging();
 
         // These tests exercise the handlers, not access control, so they run as an admin.
         // Ownership is covered by the HTTP tests.

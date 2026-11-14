@@ -5,7 +5,6 @@ using FluentValidation;
 using FluentValidation.Results;
 using LedgerCore.Application.Abstractions.Authentication;
 using LedgerCore.Application.Abstractions.Idempotency;
-using LedgerCore.Application.Abstractions.Persistence;
 using LedgerCore.Application.Common;
 using MediatR;
 
@@ -20,8 +19,7 @@ namespace LedgerCore.Application.Behaviors;
 public sealed class IdempotencyBehavior<TRequest, TResponse>(
     IIdempotencyContext idempotency,
     IIdempotencyStore store,
-    ICurrentUser currentUser,
-    IUnitOfWork unitOfWork) : IPipelineBehavior<TRequest, TResponse>
+    ICurrentUser currentUser) : IPipelineBehavior<TRequest, TResponse>
     where TRequest : notnull
 {
     public async Task<TResponse> Handle(
@@ -35,20 +33,19 @@ public sealed class IdempotencyBehavior<TRequest, TResponse>(
         var key = ScopedKey(RequireKey());
         var requestHash = Hash(request);
 
-        return await unitOfWork.ExecuteInTransactionAsync(async () =>
+        // TransactionBehavior has already opened the command's transaction, so the claim, the
+        // handler's writes and the stored response commit or roll back together.
+        var stored = await store.TryClaimAsync(key, requestHash, cancellationToken);
+        if (stored is not null)
         {
-            var stored = await store.TryClaimAsync(key, requestHash, cancellationToken);
-            if (stored is not null)
-            {
-                return stored.RequestHash == requestHash
-                    ? JsonSerializer.Deserialize<TResponse>(stored.ResponseJson!)!
-                    : throw new ConflictException($"This {IIdempotencyContext.HeaderName} was already used for a different request.");
-            }
+            return stored.RequestHash == requestHash
+                ? JsonSerializer.Deserialize<TResponse>(stored.ResponseJson!)!
+                : throw new ConflictException($"This {IIdempotencyContext.HeaderName} was already used for a different request.");
+        }
 
-            var response = await next();
-            await store.SaveResponseAsync(key, JsonSerializer.Serialize(response), cancellationToken);
-            return response;
-        }, cancellationToken);
+        var response = await next();
+        await store.SaveResponseAsync(key, JsonSerializer.Serialize(response), cancellationToken);
+        return response;
     }
 
     private string RequireKey()

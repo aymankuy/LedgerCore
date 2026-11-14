@@ -7,6 +7,8 @@ using LedgerCore.Application.Behaviors;
 using LedgerCore.Application.Ledger.Deposit;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 
 namespace LedgerCore.UnitTests.Application;
@@ -14,9 +16,10 @@ namespace LedgerCore.UnitTests.Application;
 public class ApplicationRegistrationTests
 {
     [Fact]
-    public void Validation_runs_first_then_the_access_check_then_idempotency()
+    public void Behaviors_run_in_the_intended_order()
     {
         var services = new ServiceCollection().AddApplication();
+        services.AddSingleton(typeof(ILogger<>), typeof(NullLogger<>));
         services.AddSingleton(Substitute.For<ICurrentUser>());
         services.AddSingleton(Substitute.For<IAccountRepository>());
         services.AddSingleton(Substitute.For<IIdempotencyContext>());
@@ -26,11 +29,14 @@ public class ApplicationRegistrationTests
 
         var behaviors = provider.GetServices<IPipelineBehavior<DepositCommand, Guid>>();
 
-        // A malformed account id must be a 400, never reach the database lookup of the access check.
-        // Only a caller allowed to touch the account may claim an idempotency key for it.
+        // Logging first, so rejected requests are logged too. A malformed account id must be a 400,
+        // never reach the database lookup of the access check. Only a caller allowed to touch the
+        // account gets a transaction, and the idempotency key is claimed inside it.
         behaviors.Select(b => b.GetType().GetGenericTypeDefinition()).Should().Equal(
+            typeof(LoggingBehavior<,>),
             typeof(ValidationBehavior<,>),
             typeof(AccountAccessBehavior<,>),
+            typeof(TransactionBehavior<,>),
             typeof(IdempotencyBehavior<,>));
     }
 
