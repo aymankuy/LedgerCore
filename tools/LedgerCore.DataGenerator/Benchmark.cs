@@ -12,7 +12,7 @@ namespace LedgerCore.DataGenerator;
 /// pool is emptied, then warm runs for the median and 95th percentile. It also records logical
 /// reads and saves the actual execution plan, which SSMS or Azure Data Studio can open.
 /// </summary>
-internal sealed partial class Benchmark(string connectionString, string label, string outputDirectory, int runs)
+internal sealed partial class Benchmark(string connectionString, string label, string outputDirectory, int runs, string queryDirectory)
 {
     private const int WarmUpRuns = 3;
 
@@ -37,7 +37,6 @@ internal sealed partial class Benchmark(string connectionString, string label, s
             .AppendLine("| Query | Rows | Cold ms | Warm median ms | Warm p95 ms | Logical reads |")
             .AppendLine("|---|---:|---:|---:|---:|---:|");
 
-        var queryDirectory = Path.Combine(AppContext.BaseDirectory, "Benchmarks");
         foreach (var file in Directory.GetFiles(queryDirectory, "*.sql").Order())
         {
             var name = Path.GetFileNameWithoutExtension(file);

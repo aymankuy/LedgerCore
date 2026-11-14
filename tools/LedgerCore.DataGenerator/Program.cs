@@ -40,7 +40,8 @@ if (args[0] == "benchmark")
 {
     var label = config["label"] ?? "benchmark";
     var output = config["output"] ?? Path.Combine("docs", "performance");
-    await new Benchmark(connectionString, label, output, int.Parse(config["runs"] ?? "20", CultureInfo.InvariantCulture)).RunAsync();
+    var queries = config["queries"] ?? Path.Combine(AppContext.BaseDirectory, "Benchmarks");
+    await new Benchmark(connectionString, label, output, int.Parse(config["runs"] ?? "20", CultureInfo.InvariantCulture), queries).RunAsync();
     return 0;
 }
 
