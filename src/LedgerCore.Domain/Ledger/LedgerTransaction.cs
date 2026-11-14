@@ -26,6 +26,10 @@ public sealed class LedgerTransaction
     /// <summary>Sum of signed entry amounts. Always zero for a valid transaction.</summary>
     public decimal Net => _entries.Sum(e => e.SignedAmount);
 
+    /// <summary>The event that announces this transaction once it is posted.</summary>
+    public LedgerTransactionPosted PostedEvent =>
+        new(Id, Type, _entries.Select(e => e.AccountId).Distinct().ToList());
+
     private LedgerTransaction()
     {
     }

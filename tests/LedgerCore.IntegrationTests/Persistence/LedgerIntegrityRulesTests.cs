@@ -99,8 +99,46 @@ public sealed class LedgerIntegrityRulesTests(SqlServerFixture fixture)
         return (a.Id, b.Id);
     }
 
+    [Fact]
+    public async Task The_outbox_event_commits_and_rolls_back_together_with_the_entries()
+    {
+        var (a, b) = await SeedTwoAccountsAsync();
+        var transactionId = Guid.NewGuid();
+        var eventId = Guid.NewGuid();
+
+        await using (var connection = new SqlConnection(fixture.ConnectionString))
+        {
+            await connection.OpenAsync();
+            await using var outer = connection.BeginTransaction();
+
+            await PostAsync(connection, outer, transactionId, eventId, (a, EntryDirection.Debit, 10m), (b, EntryDirection.Credit, 10m));
+
+            // Inside the caller's transaction the procedure only nests, so rolling the caller back
+            // must take the entries and the event with it.
+            outer.Rollback();
+        }
+
+        (await CountEntriesAsync(transactionId)).Should().Be(0);
+        (await ScalarAsync<int>("SELECT COUNT(*) FROM dbo.OutboxMessages WHERE Id = @id", eventId)).Should().Be(0);
+
+        await PostAsync(transactionId, (a, EntryDirection.Debit, 10m), (b, EntryDirection.Credit, 10m));
+        (await CountEntriesAsync(transactionId)).Should().Be(2);
+    }
+
     // Calls the procedure directly; the repository that wraps it comes with the write path.
     private async Task PostAsync(Guid transactionId, params (Guid AccountId, EntryDirection Direction, decimal Amount)[] entries)
+    {
+        await using var connection = new SqlConnection(fixture.ConnectionString);
+        await connection.OpenAsync();
+        await PostAsync(connection, transaction: null, transactionId, Guid.NewGuid(), entries);
+    }
+
+    private static async Task PostAsync(
+        SqlConnection connection,
+        SqlTransaction? transaction,
+        Guid transactionId,
+        Guid eventId,
+        params (Guid AccountId, EntryDirection Direction, decimal Amount)[] entries)
     {
         var table = new DataTable();
         table.Columns.Add("AccountId", typeof(Guid));
@@ -111,9 +149,7 @@ public sealed class LedgerIntegrityRulesTests(SqlServerFixture fixture)
             table.Rows.Add(entry.AccountId, (byte)entry.Direction, entry.Amount);
         }
 
-        await using var connection = new SqlConnection(fixture.ConnectionString);
-        await connection.OpenAsync();
-        await using var command = new SqlCommand("dbo.usp_PostLedgerTransaction", connection)
+        await using var command = new SqlCommand("dbo.usp_PostLedgerTransaction", connection, transaction)
         {
             CommandType = CommandType.StoredProcedure,
         };
@@ -127,6 +163,10 @@ public sealed class LedgerIntegrityRulesTests(SqlServerFixture fixture)
         var entriesParameter = command.Parameters.AddWithValue("@Entries", table);
         entriesParameter.SqlDbType = SqlDbType.Structured;
         entriesParameter.TypeName = "dbo.LedgerEntryList";
+
+        command.Parameters.AddWithValue("@EventId", eventId);
+        command.Parameters.AddWithValue("@EventType", "LedgerTransactionPosted");
+        command.Parameters.AddWithValue("@EventPayload", "{}");
 
         await command.ExecuteNonQueryAsync();
     }
