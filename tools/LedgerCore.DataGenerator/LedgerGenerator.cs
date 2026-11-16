@@ -259,6 +259,17 @@ public sealed class LedgerGenerator(GeneratorOptions options, FeeSchedule fees, 
 
         // Headers and entries of one batch commit together, so the trigger sees complete transactions.
         await using var transaction = (SqlTransaction)await connection.BeginTransactionAsync();
+
+        // The same shared lock usp_PostLedgerTransaction takes, so a balance snapshot refresh
+        // running at the same time cannot set its watermark past an uncommitted batch (ADR 0009).
+        await using (var command = new SqlCommand(
+            "EXEC sp_getapplock @Resource = N'LedgerCore.LedgerPosting', @LockMode = N'Shared', @LockOwner = N'Transaction';",
+            connection,
+            transaction))
+        {
+            await command.ExecuteNonQueryAsync();
+        }
+
         await BulkCopyAsync(connection, transaction, "dbo.LedgerTransactions", header);
         await BulkCopyAsync(connection, transaction, "dbo.LedgerEntries", entries);
         await transaction.CommitAsync();

@@ -29,9 +29,10 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IIdempotencyStore, IdempotencyStore>();
 
-        // Used by the Worker: outbox dispatch and idempotency key clean-up.
+        // Used by the Worker: outbox dispatch, idempotency key clean-up and balance snapshots.
         services.AddScoped<OutboxDispatcher>();
         services.AddScoped<IdempotencyKeyCleaner>();
+        services.AddScoped<BalanceSnapshotRefresher>();
         services.AddOptions<OutboxOptions>();
 
         // Read side: Dapper over its own connection, no repositories (spec Phase 3).

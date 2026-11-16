@@ -21,6 +21,10 @@ internal sealed partial class Benchmark(string connectionString, string label, s
         await using var connection = new SqlConnection(connectionString);
         await connection.OpenAsync();
 
+        // Balance reads cost more the further the snapshots lag behind (ADR 0009). Refreshing
+        // first measures every run in the same state, with nothing after the watermark.
+        await ExecuteAsync(connection, "EXEC dbo.usp_RefreshBalanceSnapshots;");
+
         var parameters = await FindParametersAsync(connection);
         Console.WriteLine($"Hot account {parameters.HotAccountId}: {parameters.HotEntriesInWindow:N0} entries in the 30-day window, {parameters.HotEntries:N0} in total.");
 

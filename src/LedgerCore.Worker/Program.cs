@@ -29,8 +29,10 @@ if (builder.Configuration.GetConnectionString("Redis") is { Length: > 0 } redisC
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.Configure<OutboxOptions>(builder.Configuration.GetSection(OutboxOptions.SectionName));
 builder.Services.Configure<IdempotencyCleanupOptions>(builder.Configuration.GetSection(IdempotencyCleanupOptions.SectionName));
+builder.Services.Configure<BalanceSnapshotOptions>(builder.Configuration.GetSection(BalanceSnapshotOptions.SectionName));
 
 builder.Services.AddHostedService<OutboxWorker>();
 builder.Services.AddHostedService<IdempotencyCleanupWorker>();
+builder.Services.AddHostedService<BalanceSnapshotWorker>();
 
 await builder.Build().RunAsync();
