@@ -6,6 +6,7 @@ using LedgerCore.Domain.Accounts;
 using LedgerCore.Domain.Common;
 using LedgerCore.Domain.Users;
 using LedgerCore.Infrastructure;
+using LedgerCore.Infrastructure.Persistence;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,9 +17,17 @@ namespace LedgerCore.IntegrationTests.Infrastructure;
 /// Sends commands and queries through the real Application and Infrastructure wiring, so tests
 /// exercise MediatR, EF Core, the stored procedure and Dapper together against SQL Server.
 /// </summary>
-public sealed class LedgerTestApp(SqlServerFixture fixture)
+public sealed class LedgerTestApp(string connectionString)
 {
     private static readonly DateTime SeedTime = new(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+    public LedgerTestApp(SqlServerFixture fixture)
+        : this(fixture.ConnectionString)
+    {
+    }
+
+    public LedgerDbContext CreateDbContext() =>
+        new(new DbContextOptionsBuilder<LedgerDbContext>().UseSqlServer(connectionString).Options);
 
     /// <summary>
     /// Each call gets its own scope, like an HTTP request, so no DbContext is shared between steps.
@@ -28,7 +37,7 @@ public sealed class LedgerTestApp(SqlServerFixture fixture)
     {
         var services = new ServiceCollection()
             .AddApplication()
-            .AddInfrastructure(fixture.ConnectionString)
+            .AddInfrastructure(connectionString)
             .AddLogging();
 
         // These tests exercise the handlers, not access control, so they run as an admin.
@@ -59,7 +68,7 @@ public sealed class LedgerTestApp(SqlServerFixture fixture)
 
     public async Task<Guid> SeedUserAsync()
     {
-        await using var db = fixture.CreateDbContext();
+        await using var db = CreateDbContext();
         var user = User.Register($"{Guid.NewGuid():N}@test.local", "hash", UserRole.User, SeedTime);
         db.Users.Add(user);
         await db.SaveChangesAsync();
@@ -68,7 +77,7 @@ public sealed class LedgerTestApp(SqlServerFixture fixture)
 
     private async Task EnsureSettlementAccountAsync(Currency currency)
     {
-        await using var db = fixture.CreateDbContext();
+        await using var db = CreateDbContext();
         if (await db.Accounts.AnyAsync(a => a.Kind == AccountKind.Settlement && a.Currency == currency))
         {
             return;

@@ -10,6 +10,7 @@ using LedgerCore.Infrastructure.Outbox;
 using LedgerCore.Infrastructure.Persistence;
 using LedgerCore.Infrastructure.Persistence.Repositories;
 using LedgerCore.Infrastructure.Persistence.Seeding;
+using LedgerCore.Infrastructure.Reporting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using StackExchange.Redis;
@@ -33,6 +34,8 @@ public static class DependencyInjection
         services.AddScoped<OutboxDispatcher>();
         services.AddScoped<IdempotencyKeyCleaner>();
         services.AddScoped<BalanceSnapshotRefresher>();
+        services.AddScoped<ReconciliationReporter>();
+        services.AddScoped<NightlyMaintenance>();
         services.AddOptions<OutboxOptions>();
 
         // Read side: Dapper over its own connection, no repositories (spec Phase 3).
