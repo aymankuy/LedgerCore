@@ -92,11 +92,14 @@ resource database 'Microsoft.Sql/servers/databases@2023-08-01' = {
 }
 
 // Passwordless: the App Service signs in to the database with its managed identity.
+// Connect Timeout 90: while a paused free-tier database resumes, the server accepts the login and
+// holds it for about half a minute. With the default 15 seconds, the first requests after an idle
+// period timed out with 500 on the live deployment (ADR 0011).
 resource connectionStringSecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
   parent: keyVault
   name: 'ConnectionStrings--Ledger'
   properties: {
-    value: 'Server=tcp:${sqlServer.properties.fullyQualifiedDomainName},1433;Database=${databaseName};Authentication=Active Directory Managed Identity;Encrypt=True;'
+    value: 'Server=tcp:${sqlServer.properties.fullyQualifiedDomainName},1433;Database=${databaseName};Authentication=Active Directory Managed Identity;Encrypt=True;Connect Timeout=90;'
   }
 }
 

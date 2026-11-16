@@ -5,10 +5,11 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 namespace LedgerCore.Infrastructure.Data;
 
 /// <summary>
-/// Retries opening a connection on transient errors, such as error 40613 ("not currently
-/// available") while a paused serverless Azure SQL database resumes. Measured on the live
-/// deployment, resuming took about 35 seconds, and the first requests failed with 500 before
-/// this was in place (ADR 0011).
+/// Retries opening a connection on transient errors. A paused serverless Azure SQL database
+/// answers in one of two ways while it resumes, and both were seen on the live deployment:
+/// it refuses the login with error 40613 ("not currently available"), which this retries; or
+/// it accepts the login and holds it for about half a minute, which the longer Connect Timeout
+/// in the Azure connection string covers (ADR 0011).
 /// <para>
 /// Only <c>Open</c> is retried, never a command: a command may run inside a transaction, and
 /// repeating it there could move money twice. Deadlocks in transactions have their own retry
