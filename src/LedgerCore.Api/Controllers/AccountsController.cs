@@ -49,6 +49,8 @@ public sealed class AccountsController(ISender sender, ICurrentUser currentUser,
     /// <summary>
     /// Entries in [from, to). Both default to the last 30 days. Offsets are accepted and
     /// converted to UTC, so "2026-03-01T00:00:00+03:00" means 2026-02-28T21:00:00Z.
+    /// Returns pageSize lines (default 100, at most 1,000). For the next page, send the same
+    /// from and to with cursor set to the response's nextCursor.
     /// </summary>
     [HttpGet("{accountId:guid}/statement")]
     [ProducesResponseType<AccountStatementResponse>(StatusCodes.Status200OK)]
@@ -58,12 +60,16 @@ public sealed class AccountsController(ISender sender, ICurrentUser currentUser,
         Guid accountId,
         [FromQuery] DateTimeOffset? from,
         [FromQuery] DateTimeOffset? to,
+        [FromQuery] int? pageSize,
+        [FromQuery] string? cursor,
         CancellationToken cancellationToken)
     {
         var toUtc = (to ?? timeProvider.GetUtcNow()).UtcDateTime;
         var fromUtc = from?.UtcDateTime ?? toUtc - DefaultStatementWindow;
 
-        return sender.Send(new GetAccountStatementQuery(accountId, fromUtc, toUtc), cancellationToken);
+        return sender.Send(
+            new GetAccountStatementQuery(accountId, fromUtc, toUtc, pageSize ?? GetAccountStatementQuery.DefaultPageSize, cursor),
+            cancellationToken);
     }
 
     [HttpPost("{accountId:guid}/deposits")]

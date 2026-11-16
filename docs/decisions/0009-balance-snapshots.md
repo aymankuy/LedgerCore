@@ -140,5 +140,4 @@ on the account, so no other movement on that account can commit in between.
   - about 29 ms for their lookups into `LedgerTransactions`;
   - about 12 ms for the running balance.
 
-  A 500-line page of the same query takes 4 ms. Whether to page the statement is an open
-  decision. Until it is made, the miss is reported as measured.
+  ADR 0010 pages the statement, which brings every page under the target.

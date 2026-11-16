@@ -164,6 +164,30 @@ public sealed class AccountsApiTests(SqlServerFixture fixture)
         (await GetBalanceAsync(bob, bobAccount)).Should().Be(60m);
     }
 
+    [Fact]
+    public async Task Statement_pages_through_query_string_cursors()
+    {
+        var alice = await Api.CreateUserClientAsync();
+        var account = await OpenFundedAccountAsync(alice, 50m);
+        (await alice.PostAsJsonAsync($"/api/accounts/{account}/withdrawals", new { amount = 5m }))
+            .StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var first = await alice.GetFromJsonAsync<AccountStatementResponse>($"/api/accounts/{account}/statement?pageSize=1");
+        first!.Lines.Should().ContainSingle().Which.Amount.Should().Be(50m);
+        first.NextCursor.Should().NotBeNull();
+
+        // The same window as the first page, so a page boundary never moves.
+        var window = $"from={Uri.EscapeDataString(first.FromUtc.ToString("O"))}&to={Uri.EscapeDataString(first.ToUtc.ToString("O"))}";
+        var second = await alice.GetFromJsonAsync<AccountStatementResponse>(
+            $"/api/accounts/{account}/statement?pageSize=1&{window}&cursor={first.NextCursor}");
+        second!.Lines.Should().ContainSingle().Which.Amount.Should().Be(-5m);
+        second.OpeningBalance.Should().Be(50m);
+        second.NextCursor.Should().BeNull();
+
+        var invalid = await alice.GetAsync($"/api/accounts/{account}/statement?cursor=garbage");
+        invalid.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
     private static async Task<Guid> OpenAccountAsync(HttpClient client)
     {
         var response = await client.PostAsJsonAsync("/api/accounts", new { currency = "EUR" });

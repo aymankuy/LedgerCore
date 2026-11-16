@@ -22,5 +22,9 @@ public sealed class GetAccountStatementQueryValidator : AbstractValidator<GetAcc
             .Must(q => q.ToUtc - q.FromUtc <= TimeSpan.FromDays(MaxWindowDays))
             .WithName("Window")
             .WithMessage($"A statement may cover at most {MaxWindowDays} days.");
+        RuleFor(q => q.PageSize).InclusiveBetween(1, GetAccountStatementQuery.MaxPageSize);
+        RuleFor(q => q.Cursor)
+            .Must(c => c is null || StatementCursor.TryDecode(c, out _))
+            .WithMessage("Cursor is not a value returned as NextCursor.");
     }
 }
