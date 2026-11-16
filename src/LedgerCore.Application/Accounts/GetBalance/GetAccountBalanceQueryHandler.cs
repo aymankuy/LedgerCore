@@ -9,16 +9,13 @@ namespace LedgerCore.Application.Accounts.GetBalance;
 public sealed class GetAccountBalanceQueryHandler(IDbConnectionFactory connectionFactory)
     : IRequestHandler<GetAccountBalanceQuery, AccountBalanceResponse>
 {
-    // The balance is derived from the ledger (spec rule 1): credits minus debits.
-    // Phase 4 replaces the full scan with the latest snapshot plus the entries after it.
+    // The balance is derived from the ledger (spec rule 1). fn_AccountBalance is its only
+    // definition, shared with the account list and the overdraft check.
     private const string Sql = """
-        SELECT a.Id AS AccountId,
-               a.Currency,
-               COALESCE(SUM(CASE e.Direction WHEN 2 THEN e.Amount ELSE -e.Amount END), 0) AS Balance
+        SELECT a.Id AS AccountId, a.Currency, b.Balance
         FROM dbo.Accounts AS a
-        LEFT JOIN dbo.LedgerEntries AS e ON e.AccountId = a.Id
-        WHERE a.Id = @AccountId
-        GROUP BY a.Id, a.Currency;
+        CROSS APPLY dbo.fn_AccountBalance(a.Id) AS b
+        WHERE a.Id = @AccountId;
         """;
 
     public async Task<AccountBalanceResponse> Handle(GetAccountBalanceQuery query, CancellationToken cancellationToken)

@@ -17,9 +17,9 @@ flowchart LR
     Pipeline <-->|cached balances| Redis[(Redis)]
     Commands -->|EF Core: accounts, users| Db[(SQL Server)]
     Commands -->|usp_PostLedgerTransaction<br/>entries + outbox event| Db
-    Queries -->|Dapper + hand-written T-SQL| Db
+    Queries -->|Dapper + stored procedures,<br/>snapshot + newer entries| Db
     Db --- Rules[Triggers: append-only,<br/>net-zero per transaction]
-    Worker[Worker<br/>outbox dispatcher,<br/>key clean-up] -->|claims OutboxMessages| Db
+    Worker[Worker<br/>outbox dispatcher, balance snapshots,<br/>key clean-up] -->|claims OutboxMessages,<br/>refreshes snapshots| Db
     Worker -->|removes stale balances| Redis
 ```
 
@@ -68,7 +68,7 @@ In Swagger: call `POST /api/auth/login`, copy the `token`, click **Authorize** a
 | POST | `/api/auth/register`, `/api/auth/login` | Sign up, get a JWT |
 | GET / POST | `/api/accounts` | List your accounts with balances / open one |
 | GET | `/api/accounts/{id}/balance` | Balance derived from the ledger |
-| GET | `/api/accounts/{id}/statement?from=&to=` | Entries with running balance, default last 30 days |
+| GET | `/api/accounts/{id}/statement?from=&to=&pageSize=&cursor=` | Entries with running balance, default last 30 days, 100 per page (at most 1,000); follow `nextCursor` for the next page |
 | POST | `/api/accounts/{id}/deposits`, `/withdrawals` | Money in and out through the settlement account |
 | POST | `/api/transfers` | Between customer accounts; the sender also pays the currency's transfer fee |
 | POST | `/api/accounts/{id}/freeze`, `/unfreeze` | Admin only: block or allow money movements on an account |
@@ -129,7 +129,20 @@ So `usp_PostLedgerTransaction` writes a `LedgerTransactionPosted` row to `Outbox
 
 ## Performance
 
-_Phase 4._ Statement query on a hot account at 10 million ledger entries, before and after indexing.
+10 million ledger entries, one year, 50,008 accounts, measured on SQL Server 2022 in Docker on an i7-12650H laptop with 32 GB RAM. Warm medians over 20 runs; method, cold numbers and execution plans are in [docs/performance.md](docs/performance.md).
+
+| Query | Before | After | Logical reads |
+|---|---:|---:|---:|
+| Statement, hot account, 30 days (target: under 50 ms) | 508.7 ms | **17.5 ms** | 233,947 → 4,164 |
+| Balance, hot customer account | 226.2 ms | **1.1 ms** | 101,333 → 12 |
+| Balance, settlement account with 1.36M entries | 1,187.4 ms | **1.1 ms** | 100,885 → 12 |
+| Account list with balances | 126.6 ms | **1.3 ms** | 284,214 → 15 |
+
+The gains come from three steps:
+
+- **One covering index**, `(AccountId, CreatedAtUtc, Id)` including `Direction`, `Amount` and `TransactionId`. The clustered index stays on `Id`: clustering by account was measured and gave no faster reads, with 22% slower inserts ([ADR 0008](docs/decisions/0008-ledger-entry-indexes.md)).
+- **Balance snapshots.** A balance is a snapshot plus the entries after a watermark, so reads no longer depend on the account's history. Identity order is not commit order, so the watermark is taken under an application lock; a deterministic test fails without it ([ADR 0009](docs/decisions/0009-balance-snapshots.md)).
+- **A keyset-paged statement.** Indexes could not fix the last 58 ms, which went into returning 7,667 lines. A `(CreatedAtUtc, EntryId)` cursor makes every page cost the same, the last page as much as the first ([ADR 0010](docs/decisions/0010-keyset-paged-statement.md)).
 
 ## Design decisions
 
@@ -147,8 +160,14 @@ _Phase 4._ Statement query on a hot account at 10 million ledger entries, before
 | Fee as its own ledger transaction to a fee revenue account | The fee is visible in the ledger, nets to zero like everything else, and commits only with its transfer. |
 | Outbox | Telling the cache (and later other systems) that money moved happens if and only if the money moved; see above. |
 | Separate Worker deployable | Dispatching and clean-up can be restarted, scaled or paused without touching request handling. |
-| Hosted services instead of Hangfire, for now | The dispatcher is a tight polling loop, and the outbox rows already record what a job framework would ([ADR 0006](docs/decisions/0006-background-jobs-without-hangfire.md)). |
-| Redis cache for the balance query only | Balance is a full sum over the ledger, read often and changed rarely; money movements never read it, and an outage falls back to SQL Server. |
+| Hosted services instead of Hangfire | The dispatcher is a tight polling loop, and the outbox and snapshot run tables already record what a job framework would ([ADR 0006](docs/decisions/0006-background-jobs-without-hangfire.md)). |
+| Stored procedures for the statement and reports, one inline function for every balance | Their plans can be tuned and measured in one place, and the balance has a single definition, shared by reads and the overdraft check. |
+| Covering index on `(AccountId, CreatedAtUtc, Id)`, clustered index kept on `Id` | Every per-account read is one seek with no lookups, while inserts still append to the end of the table ([ADR 0008](docs/decisions/0008-ledger-entry-indexes.md)). |
+| Balance snapshots with an entry-Id watermark | Reads no longer depend on the account's history, and the balance is still derived from the ledger rather than stored ([ADR 0009](docs/decisions/0009-balance-snapshots.md)). |
+| Application lock around the snapshot watermark | A posting that took a lower Id but has not committed yet can never fall below the watermark and be skipped. |
+| `READ_COMMITTED_SNAPSHOT` switched on by migration | A balance read combines a snapshot, a watermark and newer entries, and they must come from one point in time; this is Azure SQL's default anyway. |
+| Keyset-paged statement | Paging by position keeps every page equally cheap and stable while new entries arrive, which OFFSET cannot do ([ADR 0010](docs/decisions/0010-keyset-paged-statement.md)). |
+| Redis cache for the balance query only | The balance is the most frequently read query and changes rarely, so the cache keeps those reads off SQL Server; money movements never read it, and an outage falls back to SQL Server. |
 | No mapping library | Dapper maps straight onto response records and domain objects are built only through rule-checking factory methods, so there is nothing to map ([ADR 0007](docs/decisions/0007-no-mapping-library.md)). |
 | Pessimistic lock for money, optimistic `RowVersion` for status | Movements on one account are frequent and must queue; status changes are rare, so a conflict check is cheaper than a lock. |
 | Polly retry on deadlock (error 1205) | Lock ordering prevents the deadlocks we know about; the retry covers the ones we do not. |

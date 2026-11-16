@@ -73,6 +73,58 @@ public sealed class GetAccountStatementQueryTests(SqlServerFixture fixture)
     }
 
     [Fact]
+    public async Task Pages_chain_into_the_whole_statement()
+    {
+        var accountId = await _app.OpenAccountAsync(Currency);
+        await _app.SendAsync(new DepositCommand(accountId, 1_000m), Day1);
+
+        // Seven lines in the window, two of them at the same millisecond, so the cursor has to
+        // break the tie by entry id.
+        for (var i = 1; i <= 6; i++)
+        {
+            await _app.SendAsync(new WithdrawCommand(accountId, i), Day2.AddMinutes(i));
+        }
+
+        await _app.SendAsync(new DepositCommand(accountId, 7m), Day2.AddMinutes(6));
+
+        var whole = await _app.SendAsync(new GetAccountStatementQuery(accountId, Day2, Day3));
+        whole.Lines.Should().HaveCount(7);
+        whole.NextCursor.Should().BeNull();
+
+        var pages = new List<AccountStatementResponse>();
+        string? cursor = null;
+        do
+        {
+            var page = await _app.SendAsync(new GetAccountStatementQuery(accountId, Day2, Day3, PageSize: 3, Cursor: cursor));
+            pages.Add(page);
+            cursor = page.NextCursor;
+        }
+        while (cursor is not null);
+
+        pages.Select(p => p.Lines.Count).Should().Equal(3, 3, 1);
+        pages.SelectMany(p => p.Lines).Should().Equal(whole.Lines);
+
+        // Each page opens at the balance the previous one closed at.
+        pages[0].OpeningBalance.Should().Be(1_000m);
+        pages[1].OpeningBalance.Should().Be(pages[0].ClosingBalance);
+        pages[2].OpeningBalance.Should().Be(pages[1].ClosingBalance);
+        pages[2].ClosingBalance.Should().Be(whole.ClosingBalance);
+    }
+
+    [Fact]
+    public async Task A_page_that_fills_exactly_has_no_cursor_after_it()
+    {
+        var accountId = await _app.OpenAccountAsync(Currency);
+        await _app.SendAsync(new DepositCommand(accountId, 10m), Day2);
+        await _app.SendAsync(new DepositCommand(accountId, 20m), Day2.AddHours(1));
+
+        var page = await _app.SendAsync(new GetAccountStatementQuery(accountId, Day2, Day3, PageSize: 2));
+
+        page.Lines.Should().HaveCount(2);
+        page.NextCursor.Should().BeNull();
+    }
+
+    [Fact]
     public async Task Unknown_account_is_not_found()
     {
         var act = () => _app.SendAsync(new GetAccountStatementQuery(Guid.NewGuid(), Day1, Day2));

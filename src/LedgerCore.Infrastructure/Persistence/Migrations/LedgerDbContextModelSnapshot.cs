@@ -105,11 +105,14 @@ namespace LedgerCore.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AccountId");
-
                     b.HasIndex("TransactionId");
 
                     SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("TransactionId"), new[] { "Direction", "Amount" });
+
+                    b.HasIndex("AccountId", "CreatedAtUtc", "Id")
+                        .HasDatabaseName("IX_LedgerEntries_AccountId_CreatedAtUtc");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("AccountId", "CreatedAtUtc", "Id"), new[] { "Direction", "Amount", "TransactionId" });
 
                     b.ToTable("LedgerEntries", null, t =>
                         {
@@ -176,6 +179,51 @@ namespace LedgerCore.Infrastructure.Persistence.Migrations
                         {
                             t.HasCheckConstraint("CK_Users_Role", "[Role] IN (1, 2)");
                         });
+                });
+
+            modelBuilder.Entity("LedgerCore.Infrastructure.Persistence.Records.AccountBalanceSnapshot", b =>
+                {
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Balance")
+                        .HasPrecision(19, 4)
+                        .HasColumnType("decimal(19,4)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime2(3)");
+
+                    b.HasKey("AccountId");
+
+                    b.ToTable("AccountBalanceSnapshots", (string)null);
+                });
+
+            modelBuilder.Entity("LedgerCore.Infrastructure.Persistence.Records.BalanceSnapshotRun", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AccountsUpdated")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("FinishedAtUtc")
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<long>("FromEntryId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("StartedAtUtc")
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<long>("ToEntryId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("BalanceSnapshotRuns", (string)null);
                 });
 
             modelBuilder.Entity("LedgerCore.Infrastructure.Persistence.Records.IdempotencyRecord", b =>
@@ -261,6 +309,15 @@ namespace LedgerCore.Infrastructure.Persistence.Migrations
                     b.HasOne("LedgerCore.Domain.Ledger.LedgerTransaction", null)
                         .WithMany("Entries")
                         .HasForeignKey("TransactionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("LedgerCore.Infrastructure.Persistence.Records.AccountBalanceSnapshot", b =>
+                {
+                    b.HasOne("LedgerCore.Domain.Accounts.Account", null)
+                        .WithOne()
+                        .HasForeignKey("LedgerCore.Infrastructure.Persistence.Records.AccountBalanceSnapshot", "AccountId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

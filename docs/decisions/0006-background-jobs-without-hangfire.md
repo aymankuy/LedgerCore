@@ -43,3 +43,19 @@ and manual re-runs would actually be used.
   error.
 - This is a deviation from the pinned stack, recorded here as `CLAUDE.md` asks. Phase 4
   decides whether Hangfire earns its place there.
+
+## Phase 4 outcome (2026-11-16): Hangfire is not added
+
+The balance snapshot job is a third hosted service, `BalanceSnapshotWorker`, and it runs
+`usp_RefreshBalanceSnapshots` once a minute (ADR 0009). The three things Hangfire would have
+added are already covered without it:
+
+- **Run history:** each run writes a row to `BalanceSnapshotRuns`, with its time, its entry
+  range and the number of accounts it updated. That row is also the watermark that reads
+  depend on, so it cannot drift from what actually ran.
+- **Manual re-run:** `EXEC dbo.usp_RefreshBalanceSnapshots` from any SQL client. The procedure
+  serializes itself with an application lock, so a manual run next to the Worker is safe.
+- **Dashboard:** a query on `BalanceSnapshotRuns` shows the last run and how far behind the
+  watermark is.
+
+Hangfire therefore stays out of the project.

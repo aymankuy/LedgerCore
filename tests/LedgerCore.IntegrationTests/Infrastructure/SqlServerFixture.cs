@@ -1,4 +1,5 @@
 using LedgerCore.Infrastructure.Persistence;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Testcontainers.MsSql;
 
@@ -16,7 +17,12 @@ public sealed class SqlServerFixture : IAsyncLifetime
 
     private ApiFactory? _api;
 
-    public string ConnectionString => _container.GetConnectionString();
+    // A database of its own: the container's default connection string points at master,
+    // which cannot take database options such as READ_COMMITTED_SNAPSHOT.
+    public string ConnectionString => new SqlConnectionStringBuilder(_container.GetConnectionString())
+    {
+        InitialCatalog = "LedgerCore",
+    }.ConnectionString;
 
     /// <summary>The API hosted in memory against this database, started on first use.</summary>
     public ApiFactory Api => _api ??= new ApiFactory(ConnectionString);

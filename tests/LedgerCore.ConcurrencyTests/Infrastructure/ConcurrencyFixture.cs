@@ -9,6 +9,7 @@ using LedgerCore.Domain.Users;
 using LedgerCore.Infrastructure;
 using LedgerCore.Infrastructure.Persistence;
 using MediatR;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Testcontainers.MsSql;
@@ -28,7 +29,12 @@ public sealed class ConcurrencyFixture : IAsyncLifetime
 
     private ServiceProvider? _services;
 
-    public string ConnectionString => _container.GetConnectionString();
+    // A database of its own: the container's default connection string points at master,
+    // which cannot take database options such as READ_COMMITTED_SNAPSHOT.
+    public string ConnectionString => new SqlConnectionStringBuilder(_container.GetConnectionString())
+    {
+        InitialCatalog = "LedgerCore",
+    }.ConnectionString;
 
     public async Task InitializeAsync()
     {
@@ -43,7 +49,7 @@ public sealed class ConcurrencyFixture : IAsyncLifetime
         // scope, so parallel calls behave like parallel HTTP requests with separate DbContexts.
         _services = new ServiceCollection()
             .AddApplication()
-            .AddInfrastructure(_container.GetConnectionString())
+            .AddInfrastructure(ConnectionString)
             .AddLogging()
             .AddSingleton<ICurrentUser>(new AdminUser())
             .AddScoped<TestIdempotencyContext>()
@@ -93,7 +99,7 @@ public sealed class ConcurrencyFixture : IAsyncLifetime
     }
 
     private LedgerDbContext CreateDbContext() =>
-        new(new DbContextOptionsBuilder<LedgerDbContext>().UseSqlServer(_container.GetConnectionString()).Options);
+        new(new DbContextOptionsBuilder<LedgerDbContext>().UseSqlServer(ConnectionString).Options);
 
     private async Task<Guid> SeedUserAsync()
     {

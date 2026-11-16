@@ -9,10 +9,12 @@ namespace LedgerCore.Infrastructure.Persistence.Repositories;
 
 internal sealed class LedgerRepository(LedgerDbContext db) : ILedgerRepository
 {
+    // The same definition of a balance as every read (fn_AccountBalance). It runs inside the
+    // command's transaction, after the account row is locked.
     public Task<decimal> GetBalanceAsync(Guid accountId, CancellationToken cancellationToken) =>
-        db.LedgerEntries
-            .Where(e => e.AccountId == accountId)
-            .SumAsync(e => e.Direction == EntryDirection.Credit ? e.Amount : -e.Amount, cancellationToken);
+        db.Database
+            .SqlQuery<decimal>($"SELECT Balance AS Value FROM dbo.fn_AccountBalance({accountId})")
+            .SingleAsync(cancellationToken);
 
     public async Task PostAsync(LedgerTransaction transaction, CancellationToken cancellationToken)
     {

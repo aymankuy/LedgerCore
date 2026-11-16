@@ -56,7 +56,7 @@ sequenceDiagram
     P->>DB: INSERT IdempotencyKeys (duplicate key → return stored response)
     P->>H: Handle
     H->>DB: lock both accounts WITH (UPDLOCK, HOLDLOCK), lower id first
-    H->>DB: read source balance (SUM of entries)
+    H->>DB: read source balance (fn_AccountBalance: snapshot + newer entries)
     H->>H: domain builds Transfer and Fee transactions, rejects overdraft (422)
     H->>DB: EXEC usp_PostLedgerTransaction (transfer)
     H->>DB: EXEC usp_PostLedgerTransaction (fee)
@@ -81,8 +81,11 @@ Why it is built this way:
 
 Queries skip EF Core and the repositories. They are hand-written T-SQL run through Dapper, because
 the statement's running balance is a window function, which is clearer and faster in SQL than in
-LINQ. The tables they read are the read model for now; Phase 4 adds a balance snapshot table, so a
-balance read no longer sums the whole history.
+LINQ. Every balance comes from one inline function, `fn_AccountBalance`: the account's row in
+`AccountBalanceSnapshots`, plus the entries after the latest refresh's watermark. Those entries
+are a short range at the end of the clustered index, so a read does not depend on the account's
+history ([ADR 0009](decisions/0009-balance-snapshots.md)). The statement is paged by a
+`(CreatedAtUtc, EntryId)` cursor ([ADR 0010](decisions/0010-keyset-paged-statement.md)).
 
 ```mermaid
 sequenceDiagram
@@ -100,16 +103,16 @@ sequenceDiagram
         R-->>P: balance
     else miss, or Redis unavailable
         P->>Q: Handle
-        Q->>DB: SELECT SUM(credits − debits) ... WHERE AccountId = @id
+        Q->>DB: fn_AccountBalance: snapshot + entries after the watermark
         DB-->>Q: balance
         P->>R: SET ledgercore:balance:{id}, expires in 1 minute
     end
     P-->>C: 200 { accountId, currency, balance }
 
-    C->>P: GET /api/accounts/{id}/statement?from=&to=
-    P->>Q: no cache: every window is a different key
-    Q->>DB: opening balance + entries with SUM() OVER (running balance)
-    P-->>C: 200 statement
+    C->>P: GET /api/accounts/{id}/statement?from=&to=&cursor=
+    P->>Q: no cache: every window and page is a different key
+    Q->>DB: EXEC usp_GetAccountStatement: opening balance at the page start,<br/>then TOP (pageSize + 1) lines with SUM() OVER (running balance)
+    P-->>C: 200 statement page + nextCursor
 ```
 
 If Redis is down, the client fails fast and the query is answered from SQL Server; a cache outage
@@ -146,6 +149,10 @@ sequenceDiagram
   message is handled again. Handlers must therefore be safe to repeat; removing a cache key is.
 - **The Worker also deletes idempotency keys older than 24 hours**, 1,000 rows per statement, once
   an hour ([ADR 0006](decisions/0006-background-jobs-without-hangfire.md)).
+- **The Worker refreshes the balance snapshots every minute** with `usp_RefreshBalanceSnapshots`.
+  The procedure takes the posting lock exclusively only for the instant it reads `MAX(Id)`, so the
+  watermark can never pass an entry whose posting has not committed yet
+  ([ADR 0009](decisions/0009-balance-snapshots.md)).
 
 ### Why not just write to the database and then to Redis?
 

@@ -55,6 +55,8 @@ protected together.
 - Correctness does not depend on the database default. Azure SQL enables
   `READ_COMMITTED_SNAPSHOT` by default; the lock still serializes writers, and the balance
   is read after the lock is granted, so it includes every movement committed before it.
+  Since Phase 4, the balance snapshots need `READ_COMMITTED_SNAPSHOT`, and a migration turns
+  it on in every environment. The locking described here is unchanged (ADR 0009).
 
 ## Transfers: both accounts, in ascending id order
 
