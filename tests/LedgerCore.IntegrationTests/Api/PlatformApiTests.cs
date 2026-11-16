@@ -1,8 +1,12 @@
+using System.Data.Common;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
+using LedgerCore.Api.Health;
+using LedgerCore.Application.Abstractions.Data;
 using LedgerCore.IntegrationTests.Infrastructure;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace LedgerCore.IntegrationTests.Api;
 
@@ -71,5 +75,33 @@ public sealed class PlatformApiTests(SqlServerFixture fixture)
         posts.Should().ContainKey("/api/transfers");
         posts.Where(p => p.Key != "/api/auth/login").Should().OnlyContain(p => p.Value);
         posts["/api/auth/login"].Should().BeFalse();
+    }
+
+    [Theory]
+    [InlineData("/health/live")]
+    [InlineData("/health/ready")]
+    public async Task Health_endpoints_answer_without_a_token(string path)
+    {
+        var response = await fixture.Api.CreateClient().GetAsync(path);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await response.Content.ReadAsStringAsync()).Should().Be("Healthy");
+    }
+
+    [Fact]
+    public async Task The_database_check_is_unhealthy_when_the_database_is_unreachable()
+    {
+        var check = new DatabaseHealthCheck(new UnreachableDatabase());
+
+        var result = await check.CheckHealthAsync(new HealthCheckContext());
+
+        result.Status.Should().Be(HealthStatus.Unhealthy);
+        result.Description.Should().NotContain("Server=", "connection details must not leak");
+    }
+
+    private sealed class UnreachableDatabase : IDbConnectionFactory
+    {
+        public Task<DbConnection> OpenConnectionAsync(CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("Server=secret-host;Password=secret: connection refused");
     }
 }

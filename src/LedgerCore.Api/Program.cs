@@ -1,5 +1,6 @@
 using LedgerCore.Api.Authentication;
 using LedgerCore.Api.ErrorHandling;
+using LedgerCore.Api.Health;
 using LedgerCore.Api.Idempotency;
 using LedgerCore.Api.Logging;
 using LedgerCore.Api.OpenApi;
@@ -8,6 +9,7 @@ using LedgerCore.Application.Abstractions.Idempotency;
 using LedgerCore.Application.Ledger.Fees;
 using LedgerCore.Infrastructure;
 using LedgerCore.Infrastructure.Persistence.Seeding;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Serilog;
 using Serilog.Formatting.Compact;
 
@@ -47,6 +49,12 @@ builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails = 
     context.ProblemDetails.Extensions["correlationId"] = CorrelationIdMiddleware.Get(context.HttpContext));
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
+// Live: the process answers, with no dependency checked, so a database outage never gets a
+// healthy instance restarted. App Service pings this one every minute. Ready: the database is
+// reachable too. Pinging it every minute would keep a serverless database from ever pausing.
+builder.Services.AddHealthChecks()
+    .AddCheck<DatabaseHealthCheck>("database", tags: [ReadyTag]);
+
 var app = builder.Build();
 
 app.UseMiddleware<CorrelationIdMiddleware>();
@@ -61,10 +69,15 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
+app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = check => check.Tags.Contains(ReadyTag) });
 
 await app.Services.InitializeDatabaseAsync();
 
 await app.RunAsync();
 
 // Exposed so integration tests can host the API via WebApplicationFactory<Program>.
-public partial class Program;
+public partial class Program
+{
+    private const string ReadyTag = "ready";
+}
