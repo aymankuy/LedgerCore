@@ -1,6 +1,6 @@
 # LedgerCore: progress and plan
 
-Working notes for picking the project up again. The spec is [CLAUDE.md](CLAUDE.md); this file records where we are against it and how each phase was done.
+Working notes for picking the project up again. This file records where the project stands against its spec and how each phase was done.
 
 Last updated: 2026-11-16. State: Phases 1 to 3 are merged into `main`. Phase 4 is complete on the `phase-4` branch and waits for its merge on [github.com/aymankuy/LedgerCore](https://github.com/aymankuy/LedgerCore).
 
@@ -235,7 +235,7 @@ on the same 10M-entry database. Full numbers, hardware and plans are in
 
 ## How we work
 
-- The spec in `CLAUDE.md` is authoritative. When it is wrong or impractical, we say so and record an ADR.
+- The project spec is authoritative. When it is wrong or impractical, we say so and record an ADR.
 - Small steps, each ending with tests green and a Conventional Commit. Tests are written together with the feature.
 - New libraries or services need approval first. Polly is named in the spec for Phase 2.
 - Code, comments, commits and docs are in English. Discussion is in Turkish.
