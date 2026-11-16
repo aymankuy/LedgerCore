@@ -59,5 +59,97 @@ jobs:
           name: ledgercore-api
           path: publish
 
+      - name: Publish Functions
+        run: dotnet publish src/LedgerCore.Functions/LedgerCore.Functions.csproj --no-build -c Release -o publish-functions
+
+      - name: Upload Functions artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ledgercore-functions
+          path: publish-functions
+          include-hidden-files: true # .azurefunctions holds the worker's metadata
+
       - name: Build Docker image
         run: docker build -t ledgercore-api:${{ github.sha }} .
+
+  # Deploys main to Azure (ADR 0011). The workflow signs in with OpenID Connect: Azure trusts a
+  # token GitHub issues for this repository's main branch, so no Azure secret is stored here.
+  # The deploy identity may only manage the web apps and the SQL server in one resource group;
+  # it is a member of the SQL server's Entra admin group, so it can migrate the database.
+  deploy:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency: deploy-azure
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+      WEBAPP: ${{ vars.AZURE_WEBAPP_NAME }}
+      FUNCTIONAPP: ${{ vars.AZURE_FUNCTIONAPP_NAME }}
+      SQL_SERVER: ${{ vars.AZURE_SQL_SERVER }}
+      FIREWALL_RULE: github-${{ github.run_id }}
+    steps:
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ledgercore-api
+          path: api
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ledgercore-functions
+          path: functions
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      # The runner is outside Azure, so the SQL firewall lets its address in for this run only.
+      - name: Open the SQL firewall for this runner
+        run: |
+          ip=$(curl -fsS https://api.ipify.org)
+          az sql server firewall-rule create -g "$RESOURCE_GROUP" -s "$SQL_SERVER" -n "$FIREWALL_RULE" \
+            --start-ip-address "$ip" --end-ip-address "$ip" --output none
+
+      # The same binary, once, as an Entra administrator: migrations, the managed identities as
+      # least-privilege database users, and reference data. The running app has no DDL rights.
+      - name: Migrate the database
+        working-directory: api
+        env:
+          ConnectionStrings__Ledger: Server=tcp:${{ vars.AZURE_SQL_SERVER }}.database.windows.net,1433;Database=ledgercore;Authentication=Active Directory Default;Encrypt=True;Connect Timeout=90;
+          Database__MigrateOnStartup: "true"
+          Database__MigrateOnly: "true"
+          Database__AppPrincipals__0: ${{ vars.AZURE_WEBAPP_NAME }}
+          Database__AppPrincipals__1: ${{ vars.AZURE_FUNCTIONAPP_NAME }}
+        run: dotnet LedgerCore.Api.dll
+
+      - name: Close the SQL firewall
+        if: always()
+        run: |
+          az sql server firewall-rule delete -g "$RESOURCE_GROUP" -s "$SQL_SERVER" -n "$FIREWALL_RULE" --output none || true
+
+      - name: Deploy the API
+        run: |
+          (cd api && zip -qr ../api.zip .)
+          az webapp deploy -g "$RESOURCE_GROUP" -n "$WEBAPP" --src-path api.zip --type zip --output none
+
+      - name: Deploy the Functions
+        run: |
+          (cd functions && zip -qr ../functions.zip .)
+          az functionapp deployment source config-zip -g "$RESOURCE_GROUP" -n "$FUNCTIONAPP" --src functions.zip --output none
+
+      # The database is awake after the migration, so readiness answers quickly.
+      - name: Smoke test
+        run: |
+          base="https://$(az webapp show -g "$RESOURCE_GROUP" -n "$WEBAPP" --query defaultHostName -o tsv)"
+          for path in /health/live /health/ready /swagger/v1/swagger.json; do
+            curl -fsS --retry 10 --retry-all-errors --retry-delay 10 --max-time 120 -o /dev/null "$base$path"
+            echo "$path OK"
+          done
