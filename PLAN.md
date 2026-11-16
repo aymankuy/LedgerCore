@@ -213,7 +213,7 @@ on the same 10M-entry database. Full numbers, hardware and plans are in
 - [x] The statement for a 30-day window on a hot account at 10M rows: **17.5 ms** warm median
   for a 1,000-line page. The target is under 50 ms.
 - [x] `docs/performance.md` shows measured before/after numbers and states the hardware.
-- [ ] Plan screenshots in `docs/performance/screenshots/`. They are taken in SSMS from the
+- [x] Plan screenshots in `docs/performance/screenshots/`, taken in SSMS from the
   committed `.sqlplan` files.
 - [x] 148 unit, 60 integration and 8 concurrency tests green, and the concurrency suite passes
   20 runs in a row.

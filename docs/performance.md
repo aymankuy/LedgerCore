@@ -143,6 +143,15 @@ Three seeks with a total of 12 logical reads: the latest `BalanceSnapshotRuns` r
 `AccountBalanceSnapshots` row, and the range of `LedgerEntries` after the watermark. File:
 [06-final/02-balance-hot.sqlplan](performance/plans/06-final/02-balance-hot.sqlplan).
 
+### SSMS's missing-index suggestions
+
+- **Before plans:** SSMS suggests an index on `(AccountId, CreatedAtUtc)` including
+  `Direction` and `Amount`. That is the covering index step 3 added.
+- **Final balance plan:** SSMS suggests an index on `(AccountId, Id)`. It was considered and
+  rejected ([ADR 0009](decisions/0009-balance-snapshots.md)). The plan already reads only
+  12 pages, and the index would be about 450 MB more that every insert must maintain. The
+  entries after the watermark are already at the end of the clustered index on `Id`.
+
 ## What was not optimized
 
 - **The reports** still read about 80,000–180,000 pages. They are admin-only and run rarely,
