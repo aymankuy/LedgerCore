@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, phase-5]
+    branches: [main]
   pull_request:
 
 permissions:
@@ -78,7 +78,7 @@ jobs:
   # it is a member of the SQL server's Entra admin group, so it can migrate the database.
   deploy:
     needs: build
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/phase-5')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     concurrency: deploy-azure
     permissions:
