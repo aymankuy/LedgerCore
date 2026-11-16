@@ -30,6 +30,15 @@ internal sealed class LedgerEntryConfiguration : IEntityTypeConfiguration<Ledger
         builder.HasIndex(e => e.TransactionId)
             .IncludeProperties(e => new { e.Direction, e.Amount });
 
+        // Every per-account read (balance, statement, account list) seeks this index and never
+        // touches the table: the key matches the statement's filter and ORDER BY, and the
+        // includes carry every column those reads use. It also serves the AccountId foreign key,
+        // so EF drops its single-column IX_LedgerEntries_AccountId. The clustered index stays on
+        // Id, so inserts append; see ADR 0008 for the measurements behind both choices.
+        builder.HasIndex(e => new { e.AccountId, e.CreatedAtUtc, e.Id })
+            .HasDatabaseName("IX_LedgerEntries_AccountId_CreatedAtUtc")
+            .IncludeProperties(e => new { e.Direction, e.Amount, e.TransactionId });
+
         builder.HasOne<Account>()
             .WithMany()
             .HasForeignKey(e => e.AccountId)

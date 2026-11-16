@@ -105,11 +105,14 @@ namespace LedgerCore.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("AccountId");
-
                     b.HasIndex("TransactionId");
 
                     SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("TransactionId"), new[] { "Direction", "Amount" });
+
+                    b.HasIndex("AccountId", "CreatedAtUtc", "Id")
+                        .HasDatabaseName("IX_LedgerEntries_AccountId_CreatedAtUtc");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("AccountId", "CreatedAtUtc", "Id"), new[] { "Direction", "Amount", "TransactionId" });
 
                     b.ToTable("LedgerEntries", null, t =>
                         {
