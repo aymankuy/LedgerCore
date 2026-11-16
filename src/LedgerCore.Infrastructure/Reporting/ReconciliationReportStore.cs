@@ -22,9 +22,8 @@ public sealed class ReconciliationReportStore(BlobContainerClient container)
     {
         var name = $"{report.Day:yyyy}/{report.Day:MM}/{report.Day:dd}.json";
 
-        // IsBalanced is a computed property, so it is added explicitly to the stored document.
-        var document = new { report.IsBalanced, Report = report };
-        var content = BinaryData.FromObjectAsJson(document, Json);
+        // System.Text.Json writes the computed IsBalanced too, so the verdict is in the document.
+        var content = BinaryData.FromObjectAsJson(report, Json);
 
         await container.GetBlobClient(name).UploadAsync(
             content,

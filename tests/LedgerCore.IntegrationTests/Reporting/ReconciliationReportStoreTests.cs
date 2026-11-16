@@ -46,8 +46,8 @@ public sealed class ReconciliationReportStoreTests : IAsyncLifetime
         content.Value.Details.ContentType.Should().Be("application/json");
         var json = JsonDocument.Parse(content.Value.Content.ToString()).RootElement;
         json.GetProperty("isBalanced").GetBoolean().Should().BeTrue("the second run replaced the first");
-        json.GetProperty("report").GetProperty("day").GetString().Should().Be("2026-06-10");
-        json.GetProperty("report").GetProperty("unbalancedTransactionCount").GetInt64().Should().Be(0);
+        json.GetProperty("day").GetString().Should().Be("2026-06-10");
+        json.GetProperty("unbalancedTransactionCount").GetInt64().Should().Be(0);
     }
 
     private static ReconciliationReport Report(DateOnly day, long unbalanced) => new(

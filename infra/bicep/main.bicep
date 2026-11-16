@@ -61,3 +61,5 @@ output sqlServerName string = resources.outputs.sqlServerName
 output sqlServerFqdn string = resources.outputs.sqlServerFqdn
 output databaseName string = resources.outputs.databaseName
 output keyVaultName string = resources.outputs.keyVaultName
+output functionAppName string = resources.outputs.functionAppName
+output storageAccountName string = resources.outputs.storageAccountName

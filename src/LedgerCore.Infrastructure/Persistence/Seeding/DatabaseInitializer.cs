@@ -23,14 +23,17 @@ internal sealed class DatabaseInitializer(
     IOptions<DatabaseOptions> options,
     ILogger<DatabaseInitializer> logger)
 {
-    private const int MaxAttempts = 10;
+    // Long enough for a paused serverless Azure SQL database to resume, which takes up to a minute.
+    private const int MaxAttempts = 30;
     private static readonly TimeSpan RetryDelay = TimeSpan.FromSeconds(3);
 
     private readonly DatabaseOptions _options = options.Value;
 
     public async Task InitializeAsync(CancellationToken cancellationToken)
     {
-        // SQL Server in a container accepts connections a few seconds after it reports started.
+        // SQL Server in a container accepts connections a few seconds after it reports started, and
+        // a paused Azure SQL database answers "not currently available" until it has resumed.
+        // EF Core wraps such errors in an InvalidOperationException, so the inner one counts too.
         for (var attempt = 1; ; attempt++)
         {
             try
@@ -38,7 +41,7 @@ internal sealed class DatabaseInitializer(
                 await MigrateAsync(cancellationToken);
                 break;
             }
-            catch (SqlException ex) when (attempt < MaxAttempts)
+            catch (Exception ex) when (attempt < MaxAttempts && (ex is SqlException || ex.InnerException is SqlException))
             {
                 logger.LogWarning(ex, "Database not reachable (attempt {Attempt}/{MaxAttempts}), retrying", attempt, MaxAttempts);
                 await Task.Delay(RetryDelay, cancellationToken);

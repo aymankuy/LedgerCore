@@ -17,6 +17,8 @@ var databaseName = 'ledgercore'
 // Built-in role ids: https://learn.microsoft.com/azure/role-based-access-control/built-in-roles
 var keyVaultSecretsUser = '4633458b-17de-408a-b874-0445c86b69e6'
 var keyVaultSecretsOfficer = 'b86a8fe4-44ce-4948-aee5-eccb2c155cd7'
+var storageBlobDataOwner = 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b'
+var storageBlobDataReader = '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1'
 
 // ---------------------------------------------------------------------------------------------
 // Key Vault: the only place the connection string and the JWT signing key live. Access is by
@@ -173,6 +175,140 @@ resource deployerWritesSecrets 'Microsoft.Authorization/roleAssignments@2022-04-
 }
 
 // ---------------------------------------------------------------------------------------------
+// Storage: the Function's own state and deployment package, and the reconciliation reports.
+// Shared keys are disabled, so every client signs in with Microsoft Entra; no key can leak.
+// ---------------------------------------------------------------------------------------------
+resource storage 'Microsoft.Storage/storageAccounts@2023-05-01' = {
+  name: 'stledgercore${take(suffix, 10)}'
+  location: location
+  kind: 'StorageV2'
+  sku: {
+    name: 'Standard_LRS'
+  }
+  properties: {
+    minimumTlsVersion: 'TLS1_2'
+    allowBlobPublicAccess: false
+    allowSharedKeyAccess: false
+    supportsHttpsTrafficOnly: true
+  }
+}
+
+resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2023-05-01' = {
+  parent: storage
+  name: 'default'
+}
+
+resource deploymentContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = {
+  parent: blobService
+  name: 'function-deployment'
+}
+
+resource reportsContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = {
+  parent: blobService
+  name: 'reconciliation'
+}
+
+// ---------------------------------------------------------------------------------------------
+// Function App on Flex Consumption: scales to zero between its nightly runs, so it costs
+// nothing while idle, and its free monthly grant covers two short runs a night.
+// ---------------------------------------------------------------------------------------------
+resource functionPlan 'Microsoft.Web/serverfarms@2024-04-01' = {
+  name: 'asp-ledgercore-functions'
+  location: location
+  kind: 'functionapp'
+  sku: {
+    name: 'FC1'
+    tier: 'FlexConsumption'
+  }
+  properties: {
+    reserved: true
+  }
+}
+
+resource functionApp 'Microsoft.Web/sites@2024-04-01' = {
+  name: 'func-ledgercore-${suffix}'
+  location: location
+  kind: 'functionapp,linux'
+  identity: {
+    type: 'SystemAssigned'
+  }
+  properties: {
+    serverFarmId: functionPlan.id
+    httpsOnly: true
+    keyVaultReferenceIdentity: 'SystemAssigned'
+    siteConfig: {
+      minTlsVersion: '1.2'
+      appSettings: [
+        {
+          // Identity-based host storage: no connection string with a key.
+          name: 'AzureWebJobsStorage__accountName'
+          value: storage.name
+        }
+        {
+          name: 'ConnectionStrings__Ledger'
+          value: '@Microsoft.KeyVault(VaultName=${keyVault.name};SecretName=${connectionStringSecret.name})'
+        }
+        {
+          name: 'Reports__ContainerUri'
+          value: '${storage.properties.primaryEndpoints.blob}${reportsContainer.name}'
+        }
+      ]
+    }
+    functionAppConfig: {
+      deployment: {
+        storage: {
+          type: 'blobContainer'
+          value: '${storage.properties.primaryEndpoints.blob}${deploymentContainer.name}'
+          authentication: {
+            type: 'SystemAssignedIdentity'
+          }
+        }
+      }
+      // One instance at most: the nightly jobs never run twice side by side, and cost stays bounded.
+      scaleAndConcurrency: {
+        maximumInstanceCount: 1
+        instanceMemoryMB: 512
+      }
+      runtime: {
+        name: 'dotnet-isolated'
+        version: '9.0'
+      }
+    }
+  }
+}
+
+resource functionOwnsBlobs 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: storage
+  name: guid(storage.id, functionApp.id, storageBlobDataOwner)
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageBlobDataOwner)
+    principalId: functionApp.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource functionReadsSecrets 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: keyVault
+  name: guid(keyVault.id, functionApp.id, keyVaultSecretsUser)
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', keyVaultSecretsUser)
+    principalId: functionApp.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// The deployer can read the reports, for example from the portal, but not change them.
+resource deployerReadsReports 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: storage
+  name: guid(storage.id, deployerObjectId, storageBlobDataReader)
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageBlobDataReader)
+    principalId: deployerObjectId
+    principalType: deployerPrincipalType
+  }
+}
+
+// ---------------------------------------------------------------------------------------------
 // Budget: an email as soon as this resource group costs anything at all.
 // ---------------------------------------------------------------------------------------------
 resource budget 'Microsoft.Consumption/budgets@2023-11-01' = if (!empty(budgetContactEmail)) {
@@ -209,3 +345,5 @@ output sqlServerName string = sqlServer.name
 output sqlServerFqdn string = sqlServer.properties.fullyQualifiedDomainName
 output databaseName string = databaseName
 output keyVaultName string = keyVault.name
+output functionAppName string = functionApp.name
+output storageAccountName string = storage.name
