@@ -21,7 +21,9 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, string connectionString)
     {
-        services.AddDbContext<LedgerDbContext>(options => options.UseSqlServer(connectionString));
+        services.AddDbContext<LedgerDbContext>(options => options
+            .UseSqlServer(connectionString)
+            .AddInterceptors(new SqlConnectionRetryInterceptor()));
 
         // One DbContext per request, so the repositories and the unit of work share its changes.
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<LedgerDbContext>());
