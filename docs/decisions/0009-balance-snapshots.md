@@ -72,14 +72,20 @@ not know the watermark at compile time and cannot tell the two plans apart, so
 
 This means the cost of a read grows with the number of entries posted since the last refresh,
 across all accounts. It no longer grows with the account's history. Measured on the 10M data
-set:
+set, after the fix described below:
 
 | Entries behind the watermark | Hot balance, warm median | Logical reads |
 |---:|---:|---:|
-| 0 | 1.2 ms | 17 |
-| 1,000 | 1.6 ms | 37 |
-| 10,000 | 4.0 ms | 185 |
-| 100,000 | 16.4 ms | 1,665 |
+| 0 | 1.1 ms | 12 |
+| 1,000 | 1.3 ms | 20 |
+| 10,000 | 1.7 ms | 94 |
+| 100,000 | 7.3 ms | 834 |
+
+The first version wrapped each subquery in `COALESCE(..., 0)`. SQL Server expands that into a
+`CASE` expression that runs the subquery twice, and the actual plan showed two seeks for the
+snapshot and two for the delta. At 100,000 entries behind, that version took 16.4 ms and
+1,665 reads. The `EvaluateBalanceSubqueriesOnce` migration switched to `ISNULL`, which
+evaluates its argument once.
 
 This data set posts about 19 entries a minute, so a one-minute refresh keeps reads near the
 first row. At 100,000 entries per minute (about 1,700 per second), the interval would be
