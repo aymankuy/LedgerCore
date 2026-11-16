@@ -10,6 +10,7 @@ using LedgerCore.Application.Ledger.Fees;
 using LedgerCore.Infrastructure;
 using LedgerCore.Infrastructure.Persistence.Seeding;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Options;
 using Serilog;
 using Serilog.Formatting.Compact;
 
@@ -73,6 +74,13 @@ app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => fa
 app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = check => check.Tags.Contains(ReadyTag) });
 
 await app.Services.InitializeDatabaseAsync();
+
+// A cloud deploy runs the API once with Database:MigrateOnly as an administrator, then
+// starts the new version with no DDL rights at all.
+if (app.Services.GetRequiredService<IOptions<DatabaseOptions>>().Value.MigrateOnly)
+{
+    return;
+}
 
 await app.RunAsync();
 
