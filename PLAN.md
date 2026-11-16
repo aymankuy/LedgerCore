@@ -2,7 +2,7 @@
 
 Working notes for picking the project up again. The spec is [CLAUDE.md](CLAUDE.md); this file records where we are against it and how each phase was done.
 
-Last updated: 2026-11-14. State: Phases 1 and 2 are merged into `main`; Phase 3 is complete on the `phase-3` branch and waits for its merge on [github.com/aymankuy/LedgerCore](https://github.com/aymankuy/LedgerCore).
+Last updated: 2026-11-16. State: Phases 1 to 3 are merged into `main`. Phase 4 is complete on the `phase-4` branch and waits for its merge on [github.com/aymankuy/LedgerCore](https://github.com/aymankuy/LedgerCore).
 
 ## Status by phase
 
@@ -10,8 +10,8 @@ Last updated: 2026-11-14. State: Phases 1 and 2 are merged into `main`; Phase 3 
 |---|---|
 | 1. Core | **Done.** All acceptance criteria verified (see below). |
 | 2. Correctness under concurrency | **Done**, merged (PR #1). All acceptance criteria verified (see the checklist below). |
-| 3. Architecture (CQRS, behaviours, outbox, fee strategy) | **Done** on `phase-3`. Acceptance criteria verified (see the Phase 3 outcome below). |
-| 4. Performance (10M rows, snapshots, indexes) | Not started |
+| 3. Architecture (CQRS, behaviours, outbox, fee strategy) | **Done**, merged (PR #2). Acceptance criteria verified (see the Phase 3 outcome below). |
+| 4. Performance (10M rows, snapshots, indexes) | **Done** on `phase-4`. Acceptance criteria verified (see below). |
 | 5. Cloud (Azure, Bicep, Key Vault, Function) | Not started |
 | 6. Data and BI (star schema, SSIS, ADF, Power BI) | Not started |
 
@@ -176,6 +176,62 @@ Six steps, each a commit on `phase-3` with tests written alongside:
 - Deviations from the pinned stack, each with an ADR: Hangfire deferred to Phase 4 (0006), Mapster not used (0007).
 - Not added on purpose: an `AccountStatusChanged` event, because nothing consumes it yet. Phase 6 (SCD2) may want it.
 - Cached balances can be up to about a second stale after a posting, until the Worker's next poll. This is tested and documented, and money movements never read the cache.
+
+## Phase 4: what was built (2026-11-14 to 2026-11-16)
+
+Each step is a commit on `phase-4`, measured with `tools/LedgerCore.DataGenerator benchmark`
+on the same 10M-entry database. Full numbers, hardware and plans are in
+[docs/performance.md](docs/performance.md).
+
+1. **Data generator.** Uses Bogus with a fixed seed and the domain factories, loads through
+   `SqlBulkCopy` with triggers and constraints on, and produces 10M entries in about 10 minutes.
+   The `benchmark` command records cold, warm median and p95 times, logical reads and the
+   actual plans.
+2. **Read side in the database.** `fn_AccountBalance` is the single balance definition.
+   `usp_GetAccountStatement` serves the statement, and two reporting procedures serve the
+   admin-only `/api/reports` endpoints.
+3. **Index pass** ([ADR 0008](docs/decisions/0008-ledger-entry-indexes.md)). A covering
+   index on `(AccountId, CreatedAtUtc, Id)`, with the clustered index kept on `Id`. The
+   account-first clustered layout and a report index were measured and rejected.
+4. **Balance snapshots** ([ADR 0009](docs/decisions/0009-balance-snapshots.md)).
+   `AccountBalanceSnapshots`, the `BalanceSnapshotRuns` log and `usp_RefreshBalanceSnapshots`,
+   run every minute by `BalanceSnapshotWorker`. The watermark is an entry Id taken under an
+   application lock. The migration switches on `READ_COMMITTED_SNAPSHOT`.
+5. **Keyset-paged statement** ([ADR 0010](docs/decisions/0010-keyset-paged-statement.md)).
+   This was the user's decision, after the unpaged statement missed the target at 58 ms.
+6. **`ISNULL` instead of `COALESCE`** around the balance subqueries, which had been run twice.
+
+### Phase 4 acceptance, as verified
+
+- [x] A seed of 10M ledger entries with a realistic distribution: 20 hot accounts carry 30% of
+  the traffic, and the long tail has a median of 58 entries per account.
+- [x] `AccountBalanceSnapshots` plus an incremental job. Reads combine the latest snapshot
+  with the entries after it.
+- [x] Stored procedures for the statement and the reporting queries.
+- [x] Index pass: a covering index for the statement, the filtered outbox index (since
+  Phase 1), and the clustered index choice measured and recorded.
+- [x] The statement for a 30-day window on a hot account at 10M rows: **17.5 ms** warm median
+  for a 1,000-line page. The target is under 50 ms.
+- [x] `docs/performance.md` shows measured before/after numbers and states the hardware.
+- [ ] Plan screenshots in `docs/performance/screenshots/`. They are taken in SSMS from the
+  committed `.sqlplan` files.
+- [x] 148 unit, 60 integration and 8 concurrency tests green, and the concurrency suite passes
+  20 runs in a row.
+
+### Phase 4 findings and deviations
+
+- **The tests had been running in `master`**, because the Testcontainers connection string
+  names no database. They now use a database of their own, which is also what made it
+  possible to switch on `READ_COMMITTED_SNAPSHOT`.
+- **A soak test of parallel transfers did not catch the watermark race**, even with the lock
+  removed. A deterministic test that holds a posting open does, and fails without the lock.
+- **The statement is now paged.** That changes the API: clients follow `nextCursor`.
+- **Hangfire is not added** (ADR 0006, Phase 4 outcome). Run history lives in
+  `BalanceSnapshotRuns`.
+- **The reports were not optimized** (450–500 ms). They belong in the Phase 6 warehouse.
+- **Open question for later: the Redis balance cache.** A balance read now takes about 1 ms
+  in SQL Server, so the cache saves little. It stays for now, and whether to keep it is
+  decided with the user.
 
 ## How we work
 

@@ -30,9 +30,10 @@ client sends the same `from` and `to` together with `cursor`.
   current balance minus every entry from the page's start onwards, the same formula as
   ADR 0009 applied at the cursor's position. Pages chain exactly: each opens where the
   previous one closed, and a test checks this.
-- **`usp_GetAccountStatement` applies `TOP (@PageSize + 1)` inside a derived table**, before
-  the join to `LedgerTransactions` and before the running balance. Only the page's lines are
-  joined. The extra line tells the handler whether to issue a cursor.
+- **`usp_GetAccountStatement` applies `TOP (@PageSize + 1)` inside a derived table**, and
+  computes the running balance outside it. The nested-loop join to `LedgerTransactions`
+  streams into `Top`, so it stops after the page's lines. The extra line tells the handler
+  whether to issue a cursor.
 
 ## Why keyset and not OFFSET
 
