@@ -3,8 +3,9 @@
 A double-entry wallet and payment ledger API: accounts hold money, every movement is an immutable pair of ledger entries that nets to zero, and the database itself refuses anything that would break that.
 
 [![CI](https://github.com/aymankuy/LedgerCore/actions/workflows/ci.yml/badge.svg)](https://github.com/aymankuy/LedgerCore/actions/workflows/ci.yml)
+Also built by [Azure Pipelines](azure-pipelines.yml), which mirrors the GitHub Actions workflow.
 
-**Live demo:** _coming in Phase 5 (Azure App Service)_ · **Swagger:** `http://localhost:8080/swagger` after the quick start below
+**Live demo:** [app-ledgercore-f44wqeftpgwjs.azurewebsites.net/swagger](https://app-ledgercore-f44wqeftpgwjs.azurewebsites.net/swagger) (Azure free tier: the first request after an idle period takes about 50 seconds while the database wakes up; the trial subscription runs until mid-December 2026) · **Local Swagger:** `http://localhost:8080/swagger` after the quick start below
 
 ## Architecture
 
@@ -173,6 +174,11 @@ The gains come from three steps:
 | Pessimistic lock for money, optimistic `RowVersion` for status | Movements on one account are frequent and must queue; status changes are rare, so a conflict check is cheaper than a lock. |
 | Polly retry on deadlock (error 1205) | Lock ordering prevents the deadlocks we know about; the retry covers the ones we do not. |
 | Repository + Unit of Work on the write side only | They group a command's changes into one commit; wrapping Dapper queries in repositories would add nothing. |
+| Azure on free tiers, no secret anywhere | App Service F1, serverless Azure SQL free offer, Key Vault and keyless Storage keep the demo at zero cost, and managed identities mean there is no password or key to leak ([ADR 0011](docs/decisions/0011-azure-on-free-tiers.md)). |
+| Nightly Azure Function instead of Hangfire or the Worker | The reconciliation report and snapshot refresh run at 02:00 UTC while the API is idle, scale to zero on their own schedule, and wake the free database once a night instead of every minute. |
+| Reconciliation recomputes from raw entries | An audit that trusts the snapshots and the net-zero trigger could not catch their failure; tests corrupt a ledger on purpose to prove it catches it. |
+| GitHub OIDC and Azure DevOps workload identity federation | The pipelines prove who they are with a short-lived token Azure trusts, so no Azure credential is stored in either CI system. |
+| Migrations run from the deploy, not at API startup | The running app has no DDL rights; a one-shot run as an Entra administrator applies the schema and grants the managed identities least privilege. |
 | Not found instead of forbidden for other users' accounts | Account ids cannot be probed to learn which ones exist. |
 | ProblemDetails with a correlation id | Clients get a stable error shape, and a support request can be matched to the logs without exposing internals. |
 

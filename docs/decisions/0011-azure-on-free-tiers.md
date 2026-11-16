@@ -86,6 +86,23 @@ The running app then has no DDL rights at all. The connection reaches the server
 network integration; every connection still has to authenticate with Entra. A deploy from
 outside Azure opens a firewall rule for its own IP and removes it afterwards.
 
+### How the pipelines sign in to Azure
+
+Neither CI system stores an Azure credential:
+
+- **GitHub Actions** uses OpenID Connect. Azure trusts a token that GitHub issues for this
+  repository's `main` branch. The federated credential's subject has to use GitHub's
+  id-based form (`repo:<owner>@<id>/<repo>@<id>:ref:refs/heads/main`); the name-based form
+  was rejected with `AADSTS700213`.
+- **Azure Pipelines** uses a service connection with workload identity federation, which is
+  the same idea.
+
+The deploy identity is an app registration with only two roles, Website Contributor and SQL
+Server Contributor, both on the one resource group. To migrate the database it must also be
+a SQL administrator, so the server's Entra admin is the group `ledgercore-sql-admins`
+(the developer and the deploy identity) instead of a single user. A deploy opens a firewall
+rule for the runner's IP, migrates, and removes the rule in a step that always runs.
+
 ## Alternatives rejected
 
 - **Deploying Redis and the Worker as they are.** Azure Cache for Redis has no free tier. The
