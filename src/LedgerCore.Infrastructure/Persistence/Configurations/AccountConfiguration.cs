@@ -14,6 +14,10 @@ internal sealed class AccountConfiguration : IEntityTypeConfiguration<Account>
         {
             t.HasCheckConstraint("CK_Accounts_Status", "[Status] IN (1, 2, 3)");
             t.HasCheckConstraint("CK_Accounts_Kind", "[Kind] IN (1, 2, 3)");
+
+            // Declared so EF reads RowVersion back with OUTPUT ... INTO, which SQL Server requires
+            // on a table that has a trigger.
+            t.HasTrigger("TR_Accounts_StatusHistory");
         });
 
         builder.HasKey(a => a.Id);
