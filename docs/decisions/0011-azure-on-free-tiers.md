@@ -95,7 +95,10 @@ Neither CI system stores an Azure credential:
   id-based form (`repo:<owner>@<id>/<repo>@<id>:ref:refs/heads/main`); the name-based form
   was rejected with `AADSTS700213`.
 - **Azure Pipelines** uses a service connection with workload identity federation, which is
-  the same idea.
+  the same idea. It reuses the GitHub deploy identity: the app registration holds a second
+  federated credential whose issuer and subject come from the service connection, so no
+  second service principal or role assignment is needed. Verified on 2026-11-18: a run of
+  `main` passed Build (tests green) and Deploy (migration, zip deploys, smoke test).
 
 The deploy identity is an app registration with only two roles, Website Contributor and SQL
 Server Contributor, both on the one resource group. To migrate the database it must also be
