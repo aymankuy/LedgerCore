@@ -10,6 +10,7 @@ using LedgerCore.Infrastructure.Outbox;
 using LedgerCore.Infrastructure.Persistence;
 using LedgerCore.Infrastructure.Persistence.Repositories;
 using LedgerCore.Infrastructure.Persistence.Seeding;
+using LedgerCore.Infrastructure.Reporting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using StackExchange.Redis;
@@ -20,7 +21,9 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, string connectionString)
     {
-        services.AddDbContext<LedgerDbContext>(options => options.UseSqlServer(connectionString));
+        services.AddDbContext<LedgerDbContext>(options => options
+            .UseSqlServer(connectionString)
+            .AddInterceptors(new SqlConnectionRetryInterceptor()));
 
         // One DbContext per request, so the repositories and the unit of work share its changes.
         services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<LedgerDbContext>());
@@ -33,6 +36,8 @@ public static class DependencyInjection
         services.AddScoped<OutboxDispatcher>();
         services.AddScoped<IdempotencyKeyCleaner>();
         services.AddScoped<BalanceSnapshotRefresher>();
+        services.AddScoped<ReconciliationReporter>();
+        services.AddScoped<NightlyMaintenance>();
         services.AddOptions<OutboxOptions>();
 
         // Read side: Dapper over its own connection, no repositories (spec Phase 3).

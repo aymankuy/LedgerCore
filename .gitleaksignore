@@ -1,0 +1,7 @@
+# Reviewed false positives of `gitleaks git .` (all 141 commits scanned, 2026-11-16).
+# Public Azure built-in role definition ids, not secrets.
+ceadb71fdccd2e663b18a9383b6ff3b73adb491e:infra/bicep/resources.bicep:generic-api-key:18
+ceadb71fdccd2e663b18a9383b6ff3b73adb491e:infra/bicep/resources.bicep:generic-api-key:19
+# Throwaway JWT key of the in-process test host; no deployment uses it.
+f34de18d42d0831775f89478a1066abdbea506dd:tests/LedgerCore.IntegrationTests/Infrastructure/ApiFactory.cs:generic-api-key:22
+f65f16c5aa6300dcea8ed59d06693fcaa65d3d51:tests/LedgerCore.IntegrationTests/Infrastructure/ApiFactory.cs:generic-api-key:22

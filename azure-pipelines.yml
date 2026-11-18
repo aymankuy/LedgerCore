@@ -1,0 +1,171 @@
+# Azure DevOps twin of .github/workflows/ci.yml: the same restore, build, test, publish and
+# deploy steps, so the project runs in both CI ecosystems.
+#
+# Setup in Azure DevOps (nothing secret lives in this file):
+#   1. Project settings > Service connections > Azure Resource Manager, "Workload identity
+#      federation": no stored secret, the same idea as OpenID Connect on GitHub. Its service
+#      principal needs the roles of the GitHub deploy identity (Website Contributor and SQL Server
+#      Contributor on the resource group) and membership of the SQL server's Entra admin group.
+#   2. Pipeline variables: AZURE_SERVICE_CONNECTION, AZURE_RESOURCE_GROUP, AZURE_WEBAPP_NAME,
+#      AZURE_FUNCTIONAPP_NAME, AZURE_SQL_SERVER (names only, the same values as the GitHub variables).
+
+trigger:
+  branches:
+    include: [main]
+
+pr:
+  branches:
+    include: ['*']
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+  - stage: Build
+    jobs:
+      - job: Build
+        steps:
+          - task: UseDotNet@2
+            displayName: Install the SDK from global.json
+            inputs:
+              useGlobalJson: true
+
+          - script: dotnet restore
+            displayName: Restore
+
+          - script: dotnet build --no-restore -c Release
+            displayName: Build
+
+          # Integration tests start SQL Server through Testcontainers; the agent has Docker.
+          - script: dotnet test --no-build -c Release --logger trx --results-directory $(Build.ArtifactStagingDirectory)/TestResults
+            displayName: Test
+
+          - script: |
+              dotnet test tests/LedgerCore.UnitTests --no-build -c Release \
+                --settings tests/coverage.runsettings --collect:"XPlat Code Coverage" \
+                --results-directory TestResults/coverage
+              report=$(find TestResults/coverage -name coverage.cobertura.xml | head -n 1)
+              fail=0
+              for package in LedgerCore.Domain LedgerCore.Application; do
+                rate=$(grep -o "<package name=\"$package\" line-rate=\"[0-9.]*\"" "$report" | grep -o '[0-9.]*"$' | tr -d '"')
+                percent=$(awk -v r="$rate" 'BEGIN { printf "%.1f", r * 100 }')
+                echo "$package line coverage: $percent%"
+                awk -v r="$rate" 'BEGIN { exit !(r >= 0.70) }' || fail=1
+              done
+              exit $fail
+            displayName: Unit test coverage (Domain and Application, target 70%)
+
+          - task: PublishTestResults@2
+            displayName: Publish test results
+            condition: always()
+            inputs:
+              testResultsFormat: VSTest
+              testResultsFiles: '**/*.trx'
+              searchFolder: $(Build.ArtifactStagingDirectory)/TestResults
+
+          - script: dotnet publish src/LedgerCore.Api/LedgerCore.Api.csproj --no-build -c Release -o $(Build.ArtifactStagingDirectory)/api
+            displayName: Publish API
+
+          - script: dotnet publish src/LedgerCore.Functions/LedgerCore.Functions.csproj --no-build -c Release -o $(Build.ArtifactStagingDirectory)/functions
+            displayName: Publish Functions
+
+          - publish: $(Build.ArtifactStagingDirectory)/api
+            artifact: ledgercore-api
+            displayName: Upload API artifact
+
+          - publish: $(Build.ArtifactStagingDirectory)/functions
+            artifact: ledgercore-functions
+            displayName: Upload Functions artifact
+
+          - script: docker build -t ledgercore-api:$(Build.BuildId) .
+            displayName: Build Docker image
+
+  # Deploys main to Azure (ADR 0011), after the build, with a workload identity federation
+  # service connection instead of a stored secret.
+  - stage: Deploy
+    dependsOn: Build
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'), ne(variables['Build.Reason'], 'PullRequest'))
+    jobs:
+      - deployment: Azure
+        environment: azure
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - download: current
+                  artifact: ledgercore-api
+                - download: current
+                  artifact: ledgercore-functions
+
+                # Azure DevOps puts the files of a hidden folder into the artifact too, but the
+                # Functions worker metadata is in .azurefunctions, so check it survived.
+                - script: test -d $(Pipeline.Workspace)/ledgercore-functions/.azurefunctions
+                  displayName: Check the Functions metadata folder is present
+
+                # The agent is outside Azure, so the SQL firewall lets its address in for this run only.
+                - task: AzureCLI@2
+                  displayName: Open the SQL firewall for this agent
+                  inputs:
+                    azureSubscription: $(AZURE_SERVICE_CONNECTION)
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      ip=$(curl -fsS https://api.ipify.org)
+                      az sql server firewall-rule create -g "$(AZURE_RESOURCE_GROUP)" -s "$(AZURE_SQL_SERVER)" \
+                        -n "azdo-$(Build.BuildId)" --start-ip-address "$ip" --end-ip-address "$ip" --output none
+
+                # The same binary, once, as an Entra administrator: migrations, the managed
+                # identities as least-privilege database users, and reference data.
+                - task: AzureCLI@2
+                  displayName: Migrate the database
+                  env:
+                    ConnectionStrings__Ledger: Server=tcp:$(AZURE_SQL_SERVER).database.windows.net,1433;Database=ledgercore;Authentication=Active Directory Default;Encrypt=True;Connect Timeout=90;
+                    Database__MigrateOnStartup: 'true'
+                    Database__MigrateOnly: 'true'
+                    Database__AppPrincipals__0: $(AZURE_WEBAPP_NAME)
+                    Database__AppPrincipals__1: $(AZURE_FUNCTIONAPP_NAME)
+                  inputs:
+                    azureSubscription: $(AZURE_SERVICE_CONNECTION)
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    workingDirectory: $(Pipeline.Workspace)/ledgercore-api
+                    inlineScript: dotnet LedgerCore.Api.dll
+
+                - task: AzureCLI@2
+                  displayName: Close the SQL firewall
+                  condition: always()
+                  inputs:
+                    azureSubscription: $(AZURE_SERVICE_CONNECTION)
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      az sql server firewall-rule delete -g "$(AZURE_RESOURCE_GROUP)" -s "$(AZURE_SQL_SERVER)" \
+                        -n "azdo-$(Build.BuildId)" --output none || true
+
+                - task: AzureCLI@2
+                  displayName: Deploy the API and the Functions
+                  inputs:
+                    azureSubscription: $(AZURE_SERVICE_CONNECTION)
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      (cd $(Pipeline.Workspace)/ledgercore-api && zip -qr $(Agent.TempDirectory)/api.zip .)
+                      az webapp deploy -g "$(AZURE_RESOURCE_GROUP)" -n "$(AZURE_WEBAPP_NAME)" \
+                        --src-path $(Agent.TempDirectory)/api.zip --type zip --output none
+                      (cd $(Pipeline.Workspace)/ledgercore-functions && zip -qr $(Agent.TempDirectory)/functions.zip .)
+                      az functionapp deployment source config-zip -g "$(AZURE_RESOURCE_GROUP)" \
+                        -n "$(AZURE_FUNCTIONAPP_NAME)" --src $(Agent.TempDirectory)/functions.zip --output none
+
+                # The database is awake after the migration, so readiness answers quickly.
+                - task: AzureCLI@2
+                  displayName: Smoke test
+                  inputs:
+                    azureSubscription: $(AZURE_SERVICE_CONNECTION)
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      base="https://$(az webapp show -g "$(AZURE_RESOURCE_GROUP)" -n "$(AZURE_WEBAPP_NAME)" --query defaultHostName -o tsv)"
+                      for path in /health/live /health/ready /swagger/v1/swagger.json; do
+                        curl -fsS --retry 10 --retry-all-errors --retry-delay 10 --max-time 120 -o /dev/null "$base$path"
+                        echo "$path OK"
+                      done

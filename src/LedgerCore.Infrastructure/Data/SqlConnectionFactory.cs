@@ -8,7 +8,7 @@ internal sealed class SqlConnectionFactory(string connectionString) : IDbConnect
 {
     public async Task<DbConnection> OpenConnectionAsync(CancellationToken cancellationToken)
     {
-        var connection = new SqlConnection(connectionString);
+        var connection = new SqlConnection(connectionString) { RetryLogicProvider = SqlConnectionRetry.Provider };
         await connection.OpenAsync(cancellationToken);
         return connection;
     }

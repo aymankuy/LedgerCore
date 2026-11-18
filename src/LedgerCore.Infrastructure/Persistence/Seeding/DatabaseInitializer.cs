@@ -23,14 +23,17 @@ internal sealed class DatabaseInitializer(
     IOptions<DatabaseOptions> options,
     ILogger<DatabaseInitializer> logger)
 {
-    private const int MaxAttempts = 10;
+    // Long enough for a paused serverless Azure SQL database to resume, which takes up to a minute.
+    private const int MaxAttempts = 30;
     private static readonly TimeSpan RetryDelay = TimeSpan.FromSeconds(3);
 
     private readonly DatabaseOptions _options = options.Value;
 
     public async Task InitializeAsync(CancellationToken cancellationToken)
     {
-        // SQL Server in a container accepts connections a few seconds after it reports started.
+        // SQL Server in a container accepts connections a few seconds after it reports started, and
+        // a paused Azure SQL database answers "not currently available" until it has resumed.
+        // EF Core wraps such errors in an InvalidOperationException, so the inner one counts too.
         for (var attempt = 1; ; attempt++)
         {
             try
@@ -38,7 +41,7 @@ internal sealed class DatabaseInitializer(
                 await MigrateAsync(cancellationToken);
                 break;
             }
-            catch (SqlException ex) when (attempt < MaxAttempts)
+            catch (Exception ex) when (attempt < MaxAttempts && (ex is SqlException || ex.InnerException is SqlException))
             {
                 logger.LogWarning(ex, "Database not reachable (attempt {Attempt}/{MaxAttempts}), retrying", attempt, MaxAttempts);
                 await Task.Delay(RetryDelay, cancellationToken);
@@ -67,42 +70,69 @@ internal sealed class DatabaseInitializer(
         {
             await ProvisionAppLoginAsync(admin, _options.AppLogin, _options.AppLoginPassword, cancellationToken);
         }
+
+        foreach (var principal in _options.AppPrincipals.Where(p => !string.IsNullOrWhiteSpace(p)))
+        {
+            await ProvisionEntraPrincipalAsync(admin, principal, cancellationToken);
+        }
     }
 
-    // ADR 0001 relies on the application login lacking ALTER, because TRUNCATE bypasses triggers.
-    // The DENY is a second line of defence behind the append-only trigger.
+    // ADR 0001 relies on the application user lacking ALTER, because TRUNCATE bypasses triggers.
+    // The DENY is a second line of defence behind the append-only trigger. Every application
+    // user, SQL login or Entra principal, gets exactly these rights. @name is the database user.
+    private const string LeastPrivilegeGrants = """
+        DECLARE @grants nvarchar(max) =
+            N'ALTER ROLE db_datareader ADD MEMBER ' + QUOTENAME(@name) + N';' +
+            N'ALTER ROLE db_datawriter ADD MEMBER ' + QUOTENAME(@name) + N';' +
+            N'GRANT EXECUTE ON SCHEMA::dbo TO ' + QUOTENAME(@name) + N';' +
+            N'GRANT EXECUTE ON TYPE::dbo.LedgerEntryList TO ' + QUOTENAME(@name) + N';' +
+            N'DENY UPDATE, DELETE ON dbo.LedgerEntries TO ' + QUOTENAME(@name) + N';';
+        EXEC sp_executesql @grants;
+        """;
+
     private async Task ProvisionAppLoginAsync(
         LedgerDbContext admin, string login, string password, CancellationToken cancellationToken)
     {
         const string sql = """
-            IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = @login)
+            IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = @name)
             BEGIN
                 DECLARE @create nvarchar(max) =
-                    N'CREATE LOGIN ' + QUOTENAME(@login) + N' WITH PASSWORD = ' + QUOTENAME(@password, '''') + N', CHECK_POLICY = OFF';
+                    N'CREATE LOGIN ' + QUOTENAME(@name) + N' WITH PASSWORD = ' + QUOTENAME(@password, '''') + N', CHECK_POLICY = OFF';
                 EXEC sp_executesql @create;
             END;
 
-            IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = @login)
+            IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = @name)
             BEGIN
-                DECLARE @user nvarchar(max) = N'CREATE USER ' + QUOTENAME(@login) + N' FOR LOGIN ' + QUOTENAME(@login);
+                DECLARE @user nvarchar(max) = N'CREATE USER ' + QUOTENAME(@name) + N' FOR LOGIN ' + QUOTENAME(@name);
                 EXEC sp_executesql @user;
             END;
 
-            DECLARE @grants nvarchar(max) =
-                N'ALTER ROLE db_datareader ADD MEMBER ' + QUOTENAME(@login) + N';' +
-                N'ALTER ROLE db_datawriter ADD MEMBER ' + QUOTENAME(@login) + N';' +
-                N'GRANT EXECUTE ON SCHEMA::dbo TO ' + QUOTENAME(@login) + N';' +
-                N'GRANT EXECUTE ON TYPE::dbo.LedgerEntryList TO ' + QUOTENAME(@login) + N';' +
-                N'DENY UPDATE, DELETE ON dbo.LedgerEntries TO ' + QUOTENAME(@login) + N';';
-            EXEC sp_executesql @grants;
-            """;
+            """ + LeastPrivilegeGrants;
 
         await admin.Database.ExecuteSqlRawAsync(
             sql,
-            [new SqlParameter("@login", login), new SqlParameter("@password", password)],
+            [new SqlParameter("@name", login), new SqlParameter("@password", password)],
             cancellationToken);
 
         logger.LogInformation("Application login {Login} provisioned with least privilege", login);
+    }
+
+    // On Azure SQL, a managed identity becomes a database user with no login and no password.
+    // Only a Microsoft Entra administrator can run CREATE USER ... FROM EXTERNAL PROVIDER.
+    private async Task ProvisionEntraPrincipalAsync(LedgerDbContext admin, string principal, CancellationToken cancellationToken)
+    {
+        const string sql = """
+            IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = @name)
+            BEGIN
+                DECLARE @user nvarchar(max) = N'CREATE USER ' + QUOTENAME(@name) + N' FROM EXTERNAL PROVIDER';
+                EXEC sp_executesql @user;
+            END;
+
+            """ + LeastPrivilegeGrants;
+
+        await admin.Database.ExecuteSqlRawAsync(sql, [new SqlParameter("@name", principal)], cancellationToken);
+
+        logger.LogInformation("Entra principal {Principal} provisioned with least privilege", principal);
     }
 
     private async Task SeedReferenceDataAsync(CancellationToken cancellationToken)

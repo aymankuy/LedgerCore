@@ -26,6 +26,19 @@ public sealed class DatabaseOptions
     public string? AppLoginPassword { get; set; }
 
     /// <summary>
+    /// Microsoft Entra principals, such as the managed identities of the App Service and the
+    /// Function App, that get the same least-privilege rights as <see cref="AppLogin"/>. They
+    /// have no password: on Azure SQL each one is created FROM EXTERNAL PROVIDER.
+    /// </summary>
+    public string[] AppPrincipals { get; set; } = [];
+
+    /// <summary>
+    /// Migrate, provision and seed, then exit without serving requests. A cloud deploy runs the
+    /// API this way, as an administrator, before the new version starts.
+    /// </summary>
+    public bool MigrateOnly { get; set; }
+
+    /// <summary>
     /// Currencies that get a settlement account, so deposits and withdrawals work, and a fee
     /// revenue account, so transfers can be charged a fee.
     /// </summary>

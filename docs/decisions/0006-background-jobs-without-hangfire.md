@@ -41,7 +41,7 @@ and manual re-runs would actually be used.
 - No dashboard: the Worker's structured logs are the only view of its runs. Each failed
   message is logged with its id and attempt count, and a message that gives up is logged as an
   error.
-- This is a deviation from the pinned stack, recorded here as `CLAUDE.md` asks. Phase 4
+- This is a deviation from the pinned stack, recorded here as the project spec asks. Phase 4
   decides whether Hangfire earns its place there.
 
 ## Phase 4 outcome (2026-11-16): Hangfire is not added

@@ -25,11 +25,11 @@ Mapster is not added. Mapping stays explicit: constructor calls and SQL column a
 - There is nothing to configure a mapper for: no entity is ever turned into a DTO in code.
 - A mapper on the write side would be actively harmful, because domain objects are built only
   through methods that check invariants.
-- CLAUDE.md asks that every pattern be justifiable in one sentence; "we map nothing" is not one.
+- The project spec asks that every pattern be justifiable in one sentence; "we map nothing" is not one.
 
 ## Consequences
 
 - A response that needs a field is changed in its SQL or its record, and the compiler finds
   every caller.
-- This is a deviation from the pinned stack, recorded here as `CLAUDE.md` asks. If a later phase
+- This is a deviation from the pinned stack, recorded here as the project spec asks. If a later phase
   introduces real entity-to-DTO mapping, Mapster is reconsidered then.
