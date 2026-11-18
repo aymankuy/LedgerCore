@@ -140,3 +140,14 @@ rule for the runner's IP, migrates, and removes the rule in a step that always r
 - Bicep cannot create Entra users in SQL, and should not hold secrets. The deploy script
   therefore generates the JWT signing key and the admin password once, directly into Key
   Vault, and runs the migration step.
+
+## Verification: a fresh deploy from clean Bicep
+
+On 2026-11-18 the templates were deployed into an empty resource group
+(`rg-ledgercore-cleantest`) next to the live one and then deleted. The steps were the ones
+above and nothing else: `az deployment sub create`, one generated JWT key written to Key
+Vault, the migration step as the Entra administrator, a zip deploy of the API and the
+Function. Result: the deployment succeeded, `/health/live`, `/health/ready` and Swagger
+answered 200, and registering and logging in worked, which proves the Key Vault reference
+and the managed identity's database access. The resource group was deleted afterwards and
+the test Key Vault purged.
