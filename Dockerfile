@@ -25,7 +25,7 @@ COPY --from=build /app/worker .
 USER $APP_UID
 ENTRYPOINT ["dotnet", "LedgerCore.Worker.dll"]
 
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS api
+FROM mcr.microsoft.com/dotnet/aspnet:11.0 AS api
 WORKDIR /app
 COPY --from=build /app/api .
 
