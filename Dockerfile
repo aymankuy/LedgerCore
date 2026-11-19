@@ -19,7 +19,7 @@ RUN dotnet publish src/LedgerCore.Api/LedgerCore.Api.csproj -c Release -o /app/a
  && dotnet publish src/LedgerCore.Worker/LedgerCore.Worker.csproj -c Release -o /app/worker --no-restore
 
 # The Worker serves no HTTP, so it runs on the plain .NET runtime image without ASP.NET Core.
-FROM mcr.microsoft.com/dotnet/runtime:9.0 AS worker
+FROM mcr.microsoft.com/dotnet/runtime:11.0 AS worker
 WORKDIR /app
 COPY --from=build /app/worker .
 USER $APP_UID
