@@ -3,44 +3,44 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup Label="Testing">
-    <PackageVersion Include="coverlet.collector" Version="6.0.2" />
-    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
-    <PackageVersion Include="xunit" Version="2.9.2" />
+    <PackageVersion Include="coverlet.collector" Version="6.0.4" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.2" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2" />
     <PackageVersion Include="FluentAssertions" Version="7.2.2" />
     <PackageVersion Include="NSubstitute" Version="6.2.0" />
-    <PackageVersion Include="Testcontainers.MsSql" Version="4.15.0" />
-    <PackageVersion Include="Testcontainers.Redis" Version="4.15.0" />
-    <PackageVersion Include="Testcontainers.Azurite" Version="4.15.0" />
-    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.20" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="9.0.10" />
+    <PackageVersion Include="Testcontainers.MsSql" Version="4.17.0" />
+    <PackageVersion Include="Testcontainers.Redis" Version="4.17.0" />
+    <PackageVersion Include="Testcontainers.Azurite" Version="4.17.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.23" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="9.0.23" />
   </ItemGroup>
   <ItemGroup Label="Test data">
     <PackageVersion Include="Bogus" Version="35.6.5" />
   </ItemGroup>
   <ItemGroup Label="Persistence">
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.20" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.20" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.23" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.23" />
   </ItemGroup>
   <ItemGroup Label="Application">
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.20" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.23" />
     <PackageVersion Include="MediatR" Version="12.5.0" />
-    <PackageVersion Include="FluentValidation" Version="12.0.0" />
-    <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.0.0" />
+    <PackageVersion Include="FluentValidation" Version="12.2.0" />
+    <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.2.0" />
   </ItemGroup>
   <ItemGroup Label="Read side">
-    <PackageVersion Include="Dapper" Version="2.1.66" />
+    <PackageVersion Include="Dapper" Version="2.1.89" />
   </ItemGroup>
   <ItemGroup Label="Security">
-    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.20" />
-    <PackageVersion Include="Microsoft.Extensions.Identity.Core" Version="9.0.20" />
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.23" />
+    <PackageVersion Include="Microsoft.Extensions.Identity.Core" Version="9.0.23" />
   </ItemGroup>
   <ItemGroup Label="API">
-    <PackageVersion Include="Swashbuckle.AspNetCore" Version="7.2.0" />
+    <PackageVersion Include="Swashbuckle.AspNetCore" Version="7.3.2" />
     <PackageVersion Include="Serilog.AspNetCore" Version="9.0.0" />
     <PackageVersion Include="Serilog.Extensions.Hosting" Version="9.0.0" />
     <PackageVersion Include="Serilog.Settings.Configuration" Version="9.0.0" />
-    <PackageVersion Include="Serilog.Sinks.Console" Version="6.0.0" />
+    <PackageVersion Include="Serilog.Sinks.Console" Version="6.1.1" />
     <PackageVersion Include="Serilog.Formatting.Compact" Version="3.0.0" />
   </ItemGroup>
   <ItemGroup Label="Cache">
@@ -50,7 +50,7 @@
     <PackageVersion Include="Polly.Core" Version="8.9.1" />
   </ItemGroup>
   <ItemGroup Label="Hosting">
-    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="9.0.19" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="9.0.23" />
   </ItemGroup>
   <ItemGroup Label="Azure">
     <PackageVersion Include="Azure.Storage.Blobs" Version="12.30.1" />
