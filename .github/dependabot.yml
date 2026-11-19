@@ -1,0 +1,22 @@
+# Keeps dependencies current and surfaces known vulnerabilities as pull requests.
+# Minor and patch updates are grouped so the review queue stays short; majors come one by one.
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: monthly

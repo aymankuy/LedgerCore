@@ -143,6 +143,13 @@ resource webApp 'Microsoft.Web/sites@2024-04-01' = {
           value: 'Production'
         }
         {
+          // The App Service front end is the only thing that can reach the app, and it adds the
+          // caller's address to X-Forwarded-For. The auth rate limit keys on that address; without
+          // it every caller would share the front end's.
+          name: 'ASPNETCORE_FORWARDEDHEADERS_ENABLED'
+          value: 'true'
+        }
+        {
           name: 'ConnectionStrings__Ledger'
           value: '@Microsoft.KeyVault(VaultName=${keyVault.name};SecretName=${connectionStringSecret.name})'
         }

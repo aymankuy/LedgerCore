@@ -1,13 +1,16 @@
+using LedgerCore.Api.RateLimiting;
 using LedgerCore.Application.Abstractions.Authentication;
 using LedgerCore.Application.Auth.Login;
 using LedgerCore.Application.Auth.Register;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace LedgerCore.Api.Controllers;
 
 [ApiController]
 [Route("api/auth")]
+[EnableRateLimiting(RateLimitingSetup.AuthPolicy)]
 public sealed class AuthController(ISender sender) : ControllerBase
 {
     [HttpPost("register")]

@@ -4,6 +4,7 @@ using LedgerCore.Api.Health;
 using LedgerCore.Api.Idempotency;
 using LedgerCore.Api.Logging;
 using LedgerCore.Api.OpenApi;
+using LedgerCore.Api.RateLimiting;
 using LedgerCore.Application;
 using LedgerCore.Application.Abstractions.Idempotency;
 using LedgerCore.Application.Ledger.Fees;
@@ -43,6 +44,7 @@ if (builder.Configuration.GetConnectionString("Redis") is { Length: > 0 } redisC
 builder.Services.Configure<DatabaseOptions>(builder.Configuration.GetSection(DatabaseOptions.SectionName));
 builder.Services.AddJwtAuthentication(builder.Configuration);
 builder.Services.AddScoped<IIdempotencyContext, HttpIdempotencyContext>();
+builder.Services.AddAuthRateLimit(builder.Configuration);
 
 builder.Services.AddControllers();
 builder.Services.AddLedgerSwagger();
@@ -65,6 +67,9 @@ app.UseExceptionHandler();
 app.UseStatusCodePages();
 
 app.UseLedgerSwagger();
+
+// After routing has picked the endpoint, before authentication so a flood is turned away cheaply.
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
