@@ -1,0 +1,13 @@
+{
+    "name": "TR_Nightly",
+    "properties": {
+        "description": "Nightly at 03:00 UTC, after the 02:00 maintenance function. Left stopped on purpose: the demo runs the pipeline once by hand.",
+        "annotations": [],
+        "runtimeState": "Stopped",
+        "pipelines": [ { "pipelineReference": { "referenceName": "PL_LoadWarehouse", "type": "PipelineReference" } } ],
+        "type": "ScheduleTrigger",
+        "typeProperties": {
+            "recurrence": { "frequency": "Day", "interval": 1, "startTime": "2026-11-21T03:00:00Z", "timeZone": "UTC" }
+        }
+    }
+}

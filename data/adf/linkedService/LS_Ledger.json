@@ -1,0 +1,15 @@
+{
+    "name": "LS_Ledger",
+    "properties": {
+        "description": "The OLTP ledger database. The factory's managed identity signs in; no password exists anywhere.",
+        "annotations": [],
+        "type": "AzureSqlDatabase",
+        "typeProperties": {
+            "server": "sql-ledgercore-f44wqeftpgwjs.database.windows.net",
+            "database": "ledgercore",
+            "encrypt": "mandatory",
+            "trustServerCertificate": false,
+            "authenticationType": "SystemAssignedManagedIdentity"
+        }
+    }
+}

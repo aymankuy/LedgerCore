@@ -179,9 +179,40 @@ The gains come from three steps:
 | Reconciliation recomputes from raw entries | An audit that trusts the snapshots and the net-zero trigger could not catch their failure; tests corrupt a ledger on purpose to prove it catches it. |
 | GitHub OIDC and Azure DevOps workload identity federation | The pipelines prove who they are with a short-lived token Azure trusts, so no Azure credential is stored in either CI system. |
 | Migrations run from the deploy, not at API startup | The running app has no DDL rights; a one-shot run as an Entra administrator applies the schema and grants the managed identities least privilege. |
+| Separate star-schema warehouse | Reports scan and aggregate history, and must not compete with postings for pages and locks ([ADR 0012](docs/decisions/0012-warehouse-and-bi.md)). |
+| `DimAccount` as SCD type 2, fed by a trigger-written status history | A report about March must still describe an account as it was in March after it was closed in April, and the database records each change in the same transaction so none is missed. |
+| Load logic in T-SQL procedures; SSIS and Data Factory only copy and call | The logic can be tested on a real SQL Server and the on-premises and cloud pipelines cannot drift apart. |
+| Watermark taken under the posting lock | An entry id is allocated before its transaction commits, so a naive `MAX(Id)` could skip a late commit forever. |
 | Not found instead of forbidden for other users' accounts | Account ids cannot be probed to learn which ones exist. |
 | ProblemDetails with a correlation id | Clients get a stable error shape, and a support request can be matched to the logs without exposing internals. |
 
-## Power BI report
+## Data warehouse and Power BI
 
-_Phase 6._
+Reports run against a separate star-schema database, not the ledger that takes the writes. A nightly load copies what is new into it, and Power BI reads four views over it ([ADR 0012](docs/decisions/0012-warehouse-and-bi.md)).
+
+```mermaid
+flowchart LR
+    Ledger[(LedgerCore<br/>OLTP)] -->|usp_GetSafeEntryWatermark,<br/>usp_ExtractLedgerEntries,<br/>usp_ExtractAccountStatusHistory| Tool{{SSIS package<br/>or Data Factory pipeline}}
+    Tool -->|copy| Stg[stg tables]
+    Stg -->|etl.usp_LoadDimAccount,<br/>etl.usp_LoadFactLedgerEntry| Star[(LedgerCoreDW<br/>FactLedgerEntry, DimAccount SCD2,<br/>DimDate, DimTransactionType)]
+    Star --- Etl[etl.Watermark, LoadAudit,<br/>RejectedRow]
+    Star -->|4 views| Pbi[Power BI report]
+```
+
+- **Star schema** in [`data/warehouse/`](data/warehouse): `FactLedgerEntry` plus `DimAccount`, `DimDate` and `DimTransactionType`.
+- **`DimAccount` is slowly changing type 2.** Freezing an account closes its current row and opens a new one, and a fact row points at the version that was valid when the entry was posted. The status changes come from a trigger-written history table in the ledger, so none can be missed.
+- **Re-runnable.** Running the load again adds nothing: the facts are keyed by the ledger's entry id, the dimension by the history id, and the watermark moves in the same transaction as the rows. Tests prove it against a real SQL Server, and the SSIS package was run twice: the first run loaded 60,006 entries and 408 account versions, the second loaded none (`etl.LoadAudit` has both runs).
+- **One implementation, two orchestrators.** The load logic is T-SQL in [`003_etl_procedures.sql`](data/warehouse/003_etl_procedures.sql). The [SSIS package](data/ssis/LedgerCore.WarehouseLoad) (the on-premises ecosystem: runs on a Windows server next to SQL Server) and the [Azure Data Factory pipeline](data/adf) (the cloud one: no server, billed per run) only copy rows into staging and call it, so they cannot drift apart. Rows that cannot be loaded go to `etl.RejectedRow` with a reason instead of failing the run.
+- **A load script for local use:** `powershell -File scripts/load-warehouse.ps1` creates `LedgerCoreDW` on the compose database and loads it.
+
+![SSIS control flow](docs/images/ssis-control-flow.png)
+
+### Power BI report
+
+[`data/powerbi/LedgerCore.pbix`](data/powerbi/LedgerCore.pbix) (also as a diff-friendly [PBIP project](data/powerbi/LedgerCore.pbip)) reads the views `vw_DailyTransactionVolume`, `vw_AccountBalance`, `vw_TopAccountsByVolume` and `vw_FeeRevenueDaily`. Amounts are never added across currencies: lines are drawn per currency and the top-accounts page has a currency slicer. Local data comes from the Bogus generator (30,000 transactions over 90 days).
+
+| Daily transaction volume | Balance distribution |
+|---|---|
+| ![Daily transaction volume](docs/images/powerbi-daily-volume.png) | ![Balance distribution](docs/images/powerbi-balance-distribution.png) |
+| **Top accounts by volume** | **Fee revenue trend** |
+| ![Top accounts](docs/images/powerbi-top-accounts.png) | ![Fee revenue](docs/images/powerbi-fee-revenue.png) |

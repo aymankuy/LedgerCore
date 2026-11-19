@@ -1,0 +1,10 @@
+{
+    "name": "DS_Warehouse",
+    "properties": {
+        "linkedServiceName": { "referenceName": "LS_Warehouse", "type": "LinkedServiceReference" },
+        "annotations": [],
+        "type": "AzureSqlTable",
+        "schema": [],
+        "typeProperties": {}
+    }
+}

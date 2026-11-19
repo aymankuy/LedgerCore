@@ -1,0 +1,15 @@
+{
+    "name": "LS_Warehouse",
+    "properties": {
+        "description": "The warehouse database, a second database on the same logical server. Managed identity again.",
+        "annotations": [],
+        "type": "AzureSqlDatabase",
+        "typeProperties": {
+            "server": "sql-ledgercore-f44wqeftpgwjs.database.windows.net",
+            "database": "ledgercoredw",
+            "encrypt": "mandatory",
+            "trustServerCertificate": false,
+            "authenticationType": "SystemAssignedManagedIdentity"
+        }
+    }
+}
