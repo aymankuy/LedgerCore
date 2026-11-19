@@ -184,6 +184,7 @@ The gains come from three steps:
 | Load logic in T-SQL procedures; SSIS and Data Factory only copy and call | The logic can be tested on a real SQL Server and the on-premises and cloud pipelines cannot drift apart. |
 | Watermark taken under the posting lock | An entry id is allocated before its transaction commits, so a naive `MAX(Id)` could skip a late commit forever. |
 | Not found instead of forbidden for other users' accounts | Account ids cannot be probed to learn which ones exist. |
+| Sliding-window rate limit on register and login, per client address | The only endpoints that need no token cannot be used to guess passwords at network speed, without the lockout that lets anyone lock out anyone else ([ADR 0013](docs/decisions/0013-auth-rate-limit.md)). |
 | ProblemDetails with a correlation id | Clients get a stable error shape, and a support request can be matched to the logs without exposing internals. |
 
 ## Data warehouse and Power BI

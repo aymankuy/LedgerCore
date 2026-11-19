@@ -11,7 +11,10 @@ namespace LedgerCore.IntegrationTests.Infrastructure;
 /// Hosts the real API in memory, configured the way docker compose configures it: startup
 /// migrations and seeding on, settings from configuration rather than appsettings files.
 /// </summary>
-public sealed class ApiFactory(string connectionString, string? redisConnectionString = null) : WebApplicationFactory<Program>
+public sealed class ApiFactory(
+    string connectionString,
+    string? redisConnectionString = null,
+    int authPermitLimit = 100_000) : WebApplicationFactory<Program>
 {
     public const string AdminEmail = "admin@test.local";
     public const string Password = "integration-pass";
@@ -31,6 +34,10 @@ public sealed class ApiFactory(string connectionString, string? redisConnectionS
         builder.UseSetting("Database:MigrateOnStartup", "true");
         builder.UseSetting("Database:AdminEmail", AdminEmail);
         builder.UseSetting("Database:AdminPassword", Password);
+
+        // Every test shares one in-memory client address, so the auth limit is out of the way
+        // unless a test is about the limit itself.
+        builder.UseSetting("RateLimiting:Auth:PermitLimit", authPermitLimit.ToString(System.Globalization.CultureInfo.InvariantCulture));
     }
 
     /// <summary>Registers a new user and returns a client that sends their token.</summary>
