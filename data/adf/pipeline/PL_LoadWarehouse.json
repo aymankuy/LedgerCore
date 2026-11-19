@@ -1,0 +1,132 @@
+{
+    "name": "PL_LoadWarehouse",
+    "properties": {
+        "description": "The cloud twin of data/ssis/LedgerCore.WarehouseLoad. Copies the safe window of ledger entries and the account status history into the warehouse staging tables, then calls the same etl.usp_Load* procedures the SSIS package calls.",
+        "activities": [
+            {
+                "name": "Clear staging",
+                "type": "SqlServerStoredProcedure",
+                "dependsOn": [],
+                "policy": { "timeout": "0.00:10:00", "retry": 0, "retryIntervalInSeconds": 30, "secureOutput": false, "secureInput": false },
+                "userProperties": [],
+                "typeProperties": { "storedProcedureName": "[etl].[usp_ClearStaging]" },
+                "linkedServiceName": { "referenceName": "LS_Warehouse", "type": "LinkedServiceReference" }
+            },
+            {
+                "name": "Read watermark",
+                "type": "Lookup",
+                "dependsOn": [ { "activity": "Clear staging", "dependencyConditions": [ "Succeeded" ] } ],
+                "policy": { "timeout": "0.00:10:00", "retry": 0, "retryIntervalInSeconds": 30, "secureOutput": false, "secureInput": false },
+                "userProperties": [],
+                "typeProperties": {
+                    "source": {
+                        "type": "AzureSqlSource",
+                        "sqlReaderQuery": "SELECT CAST(LastValue AS bigint) AS LastValue FROM etl.Watermark WHERE Source = N'LedgerEntries'",
+                        "queryTimeout": "02:00:00",
+                        "partitionOption": "None"
+                    },
+                    "dataset": { "referenceName": "DS_Warehouse", "type": "DatasetReference" },
+                    "firstRowOnly": true
+                }
+            },
+            {
+                "name": "Read safe upper bound",
+                "type": "Lookup",
+                "dependsOn": [ { "activity": "Read watermark", "dependencyConditions": [ "Succeeded" ] } ],
+                "policy": { "timeout": "0.00:10:00", "retry": 0, "retryIntervalInSeconds": 30, "secureOutput": false, "secureInput": false },
+                "userProperties": [],
+                "typeProperties": {
+                    "source": {
+                        "type": "AzureSqlSource",
+                        "sqlReaderStoredProcedureName": "[dbo].[usp_GetSafeEntryWatermark]",
+                        "queryTimeout": "02:00:00",
+                        "partitionOption": "None"
+                    },
+                    "dataset": { "referenceName": "DS_Ledger", "type": "DatasetReference" },
+                    "firstRowOnly": true
+                }
+            },
+            {
+                "name": "Copy ledger entries",
+                "type": "Copy",
+                "dependsOn": [ { "activity": "Read safe upper bound", "dependencyConditions": [ "Succeeded" ] } ],
+                "policy": { "timeout": "0.01:00:00", "retry": 0, "retryIntervalInSeconds": 30, "secureOutput": false, "secureInput": false },
+                "userProperties": [],
+                "typeProperties": {
+                    "source": {
+                        "type": "AzureSqlSource",
+                        "sqlReaderStoredProcedureName": "[dbo].[usp_ExtractLedgerEntries]",
+                        "storedProcedureParameters": {
+                            "FromEntryId": { "type": "Int64", "value": { "value": "@activity('Read watermark').output.firstRow.LastValue", "type": "Expression" } },
+                            "ToEntryId": { "type": "Int64", "value": { "value": "@activity('Read safe upper bound').output.firstRow.SafeEntryId", "type": "Expression" } }
+                        },
+                        "queryTimeout": "02:00:00",
+                        "partitionOption": "None"
+                    },
+                    "sink": { "type": "AzureSqlSink", "writeBehavior": "insert", "disableMetricsCollection": false },
+                    "enableStaging": false
+                },
+                "inputs": [ { "referenceName": "DS_Ledger", "type": "DatasetReference" } ],
+                "outputs": [ { "referenceName": "DS_StgLedgerEntry", "type": "DatasetReference" } ]
+            },
+            {
+                "name": "Copy account status history",
+                "type": "Copy",
+                "dependsOn": [ { "activity": "Copy ledger entries", "dependencyConditions": [ "Succeeded" ] } ],
+                "policy": { "timeout": "0.01:00:00", "retry": 0, "retryIntervalInSeconds": 30, "secureOutput": false, "secureInput": false },
+                "userProperties": [],
+                "typeProperties": {
+                    "source": {
+                        "type": "AzureSqlSource",
+                        "sqlReaderStoredProcedureName": "[dbo].[usp_ExtractAccountStatusHistory]",
+                        "queryTimeout": "02:00:00",
+                        "partitionOption": "None"
+                    },
+                    "sink": { "type": "AzureSqlSink", "writeBehavior": "insert", "disableMetricsCollection": false },
+                    "enableStaging": false
+                },
+                "inputs": [ { "referenceName": "DS_Ledger", "type": "DatasetReference" } ],
+                "outputs": [ { "referenceName": "DS_StgAccountStatusChange", "type": "DatasetReference" } ]
+            },
+            {
+                "name": "Load dimension",
+                "type": "SqlServerStoredProcedure",
+                "dependsOn": [ { "activity": "Copy account status history", "dependencyConditions": [ "Succeeded" ] } ],
+                "policy": { "timeout": "0.01:00:00", "retry": 0, "retryIntervalInSeconds": 30, "secureOutput": false, "secureInput": false },
+                "userProperties": [],
+                "typeProperties": { "storedProcedureName": "[etl].[usp_LoadDimAccount]" },
+                "linkedServiceName": { "referenceName": "LS_Warehouse", "type": "LinkedServiceReference" }
+            },
+            {
+                "name": "Load facts",
+                "type": "SqlServerStoredProcedure",
+                "dependsOn": [ { "activity": "Load dimension", "dependencyConditions": [ "Succeeded" ] } ],
+                "policy": { "timeout": "0.01:00:00", "retry": 0, "retryIntervalInSeconds": 30, "secureOutput": false, "secureInput": false },
+                "userProperties": [],
+                "typeProperties": { "storedProcedureName": "[etl].[usp_LoadFactLedgerEntry]" },
+                "linkedServiceName": { "referenceName": "LS_Warehouse", "type": "LinkedServiceReference" }
+            },
+            {
+                "name": "Audit staging counts",
+                "type": "Script",
+                "dependsOn": [ { "activity": "Load facts", "dependencyConditions": [ "Succeeded" ] } ],
+                "policy": { "timeout": "0.00:10:00", "retry": 0, "retryIntervalInSeconds": 30, "secureOutput": false, "secureInput": false },
+                "userProperties": [],
+                "linkedServiceName": { "referenceName": "LS_Warehouse", "type": "LinkedServiceReference" },
+                "typeProperties": {
+                    "scripts": [
+                        {
+                            "type": "NonQuery",
+                            "text": {
+                                "value": "@concat('DECLARE @entries int = ', string(activity('Copy ledger entries').output.rowsCopied), ', @statuses int = ', string(activity('Copy account status history').output.rowsCopied), '; INSERT INTO etl.LoadAudit (TargetTable, StartedAtUtc, FinishedAtUtc, RowsRead, RowsLoaded, RowsRejected) VALUES (N''stg.LedgerEntry'', SYSUTCDATETIME(), SYSUTCDATETIME(), @entries, @entries, 0), (N''stg.AccountStatusChange'', SYSUTCDATETIME(), SYSUTCDATETIME(), @statuses, @statuses, 0);')",
+                                "type": "Expression"
+                            }
+                        }
+                    ],
+                    "scriptBlockExecutionTimeout": "02:00:00"
+                }
+            }
+        ],
+        "annotations": []
+    }
+}

@@ -1,0 +1,50 @@
+table vw_DailyTransactionVolume
+	lineageTag: a19087d5-d5c1-4cfe-af29-330274a91bb9
+
+	measure 'Total volume' = SUM(vw_DailyTransactionVolume[Volume])
+		formatString: #,0.00
+		lineageTag: 05afe89d-5aec-4bc8-a2c2-23b69379d9ab
+
+	measure 'Transactions count' = SUM(vw_DailyTransactionVolume[Transactions])
+		formatString: #,0
+		lineageTag: 57ad5af8-64a2-430b-9a29-b039fd7bee7a
+
+	column Date
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: d7cd16cc-7cae-41aa-9496-c3b4d6d3b07f
+		summarizeBy: none
+		sourceColumn: Date
+
+	column TransactionType
+		dataType: string
+		lineageTag: 78cabe13-276d-455c-9b00-b1daf7c0d46e
+		summarizeBy: none
+		sourceColumn: TransactionType
+
+	column Currency
+		dataType: string
+		lineageTag: 85ce9bf7-289e-401f-be7c-27d9e35e6b6a
+		summarizeBy: none
+		sourceColumn: Currency
+
+	column Transactions
+		dataType: int64
+		lineageTag: 58ac74f4-14e8-4acc-9859-cdf24c67e170
+		summarizeBy: sum
+		sourceColumn: Transactions
+
+	column Volume
+		dataType: decimal
+		lineageTag: d0bd4cab-9292-4b22-85fe-ede69cc9daf8
+		summarizeBy: sum
+		sourceColumn: Volume
+
+	partition vw_DailyTransactionVolume = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Database("127.0.0.1,14333", "LedgerCoreDW"),
+				    Data = Source{[Schema="dbo",Item="vw_DailyTransactionVolume"]}[Data]
+				in
+				    Data

@@ -1,0 +1,10 @@
+{
+    "name": "DS_Ledger",
+    "properties": {
+        "linkedServiceName": { "referenceName": "LS_Ledger", "type": "LinkedServiceReference" },
+        "annotations": [],
+        "type": "AzureSqlTable",
+        "schema": [],
+        "typeProperties": {}
+    }
+}

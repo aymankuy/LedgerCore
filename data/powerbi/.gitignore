@@ -1,0 +1,2 @@
+# Power BI writes a local cache (with query results) and per-user settings here.
+**/.pbi/

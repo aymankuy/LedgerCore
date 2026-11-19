@@ -1,0 +1,34 @@
+table vw_FeeRevenueDaily
+	lineageTag: 637ba5e2-b2fc-4f61-b360-a9390c72ecfc
+
+	measure 'Fee revenue' = SUM(vw_FeeRevenueDaily[FeeRevenue])
+		formatString: #,0.00
+		lineageTag: 675a88b8-2929-4a84-8464-c6b073ec3b29
+
+	column Date
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: f61f7554-be33-4963-bef3-b2ba873acce5
+		summarizeBy: none
+		sourceColumn: Date
+
+	column Currency
+		dataType: string
+		lineageTag: 330a9950-13ee-485d-bed2-a96cc70b0cd2
+		summarizeBy: none
+		sourceColumn: Currency
+
+	column FeeRevenue
+		dataType: decimal
+		lineageTag: 99d177a8-665c-42e7-8e81-80a7a0c299ce
+		summarizeBy: sum
+		sourceColumn: FeeRevenue
+
+	partition vw_FeeRevenueDaily = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Database("127.0.0.1,14333", "LedgerCoreDW"),
+				    Data = Source{[Schema="dbo",Item="vw_FeeRevenueDaily"]}[Data]
+				in
+				    Data

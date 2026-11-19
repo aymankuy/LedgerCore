@@ -73,10 +73,14 @@ namespace LedgerCore.Infrastructure.Persistence.Migrations
 
                     b.ToTable("Accounts", null, t =>
                         {
+                            t.HasTrigger("TR_Accounts_StatusHistory");
+
                             t.HasCheckConstraint("CK_Accounts_Kind", "[Kind] IN (1, 2, 3)");
 
                             t.HasCheckConstraint("CK_Accounts_Status", "[Status] IN (1, 2, 3)");
                         });
+
+                    b.HasAnnotation("SqlServer:UseSqlOutputClause", false);
                 });
 
             modelBuilder.Entity("LedgerCore.Domain.Ledger.LedgerEntry", b =>
@@ -196,6 +200,33 @@ namespace LedgerCore.Infrastructure.Persistence.Migrations
                     b.HasKey("AccountId");
 
                     b.ToTable("AccountBalanceSnapshots", (string)null);
+                });
+
+            modelBuilder.Entity("LedgerCore.Infrastructure.Persistence.Records.AccountStatusChange", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("ChangedAtUtc")
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<byte>("Status")
+                        .HasColumnType("tinyint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId", "Id");
+
+                    b.ToTable("AccountStatusHistory", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_AccountStatusHistory_Status", "[Status] IN (1, 2, 3)");
+                        });
                 });
 
             modelBuilder.Entity("LedgerCore.Infrastructure.Persistence.Records.BalanceSnapshotRun", b =>
@@ -318,6 +349,15 @@ namespace LedgerCore.Infrastructure.Persistence.Migrations
                     b.HasOne("LedgerCore.Domain.Accounts.Account", null)
                         .WithOne()
                         .HasForeignKey("LedgerCore.Infrastructure.Persistence.Records.AccountBalanceSnapshot", "AccountId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("LedgerCore.Infrastructure.Persistence.Records.AccountStatusChange", b =>
+                {
+                    b.HasOne("LedgerCore.Domain.Accounts.Account", null)
+                        .WithMany()
+                        .HasForeignKey("AccountId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

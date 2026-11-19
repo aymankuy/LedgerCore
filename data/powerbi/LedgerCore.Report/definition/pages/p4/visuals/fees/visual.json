@@ -1,0 +1,95 @@
+{
+    "$schema":  "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.13.0/schema.json",
+    "name":  "fees",
+    "position":  {
+                     "x":  20,
+                     "y":  20,
+                     "z":  0,
+                     "height":  670,
+                     "width":  1240
+                 },
+    "visual":  {
+                   "visualType":  "lineChart",
+                   "query":  {
+                                 "queryState":  {
+                                                    "Category":  {
+                                                                     "projections":  [
+                                                                                         {
+                                                                                             "field":  {
+                                                                                                           "Column":  {
+                                                                                                                          "Expression":  {
+                                                                                                                                             "SourceRef":  {
+                                                                                                                                                               "Entity":  "vw_FeeRevenueDaily"
+                                                                                                                                                           }
+                                                                                                                                         },
+                                                                                                                          "Property":  "Date"
+                                                                                                                      }
+                                                                                                       },
+                                                                                             "queryRef":  "vw_FeeRevenueDaily.Date",
+                                                                                             "nativeQueryRef":  "Date"
+                                                                                         }
+                                                                                     ]
+                                                                 },
+                                                    "Y":  {
+                                                              "projections":  [
+                                                                                  {
+                                                                                      "field":  {
+                                                                                                    "Measure":  {
+                                                                                                                    "Expression":  {
+                                                                                                                                       "SourceRef":  {
+                                                                                                                                                         "Entity":  "vw_FeeRevenueDaily"
+                                                                                                                                                     }
+                                                                                                                                   },
+                                                                                                                    "Property":  "Fee revenue"
+                                                                                                                }
+                                                                                                },
+                                                                                      "queryRef":  "vw_FeeRevenueDaily.Fee revenue",
+                                                                                      "nativeQueryRef":  "Fee revenue"
+                                                                                  }
+                                                                              ]
+                                                          },
+                                                    "Series":  {
+                                                                   "projections":  [
+                                                                                       {
+                                                                                           "field":  {
+                                                                                                         "Column":  {
+                                                                                                                        "Expression":  {
+                                                                                                                                           "SourceRef":  {
+                                                                                                                                                             "Entity":  "vw_FeeRevenueDaily"
+                                                                                                                                                         }
+                                                                                                                                       },
+                                                                                                                        "Property":  "Currency"
+                                                                                                                    }
+                                                                                                     },
+                                                                                           "queryRef":  "vw_FeeRevenueDaily.Currency",
+                                                                                           "nativeQueryRef":  "Currency"
+                                                                                       }
+                                                                                   ]
+                                                               }
+                                                }
+                             },
+                   "visualContainerObjects":  {
+                                                  "title":  [
+                                                                {
+                                                                    "properties":  {
+                                                                                       "show":  {
+                                                                                                    "expr":  {
+                                                                                                                 "Literal":  {
+                                                                                                                                 "Value":  "true"
+                                                                                                                             }
+                                                                                                             }
+                                                                                                },
+                                                                                       "text":  {
+                                                                                                    "expr":  {
+                                                                                                                 "Literal":  {
+                                                                                                                                 "Value":  "\u0027Fee revenue per day\u0027"
+                                                                                                                             }
+                                                                                                             }
+                                                                                                }
+                                                                                   }
+                                                                }
+                                                            ]
+                                              },
+                   "drillFilterOtherVisuals":  true
+               }
+}

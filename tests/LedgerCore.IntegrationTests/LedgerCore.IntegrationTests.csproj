@@ -22,6 +22,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The warehouse scripts are the product; the tests build a database from them. -->
+    <Content Include="..\..\data\warehouse\*.sql" Link="Warehouse\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\LedgerCore.Api\LedgerCore.Api.csproj" />
     <ProjectReference Include="..\..\tools\LedgerCore.DataGenerator\LedgerCore.DataGenerator.csproj" />
   </ItemGroup>

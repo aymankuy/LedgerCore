@@ -86,6 +86,29 @@ Console.WriteLine($"Generating {options.Transactions:N0} transactions from {opti
 
 await using var connection = new SqlConnection(connectionString);
 await connection.OpenAsync();
+
+// The data starts in the past, but the API created the settlement and fee accounts when it was
+// first started. An entry cannot predate its account, and the warehouse refuses such entries,
+// so the system accounts and their first status row are dated to the start of the window. The
+// history table is append-only; this one-off correction of synthetic data lifts that trigger for
+// the duration of the statement. Run as sa, as the rest of this tool.
+await using (var backdate = connection.CreateCommand())
+{
+    backdate.CommandText = """
+        SET XACT_ABORT ON;
+        BEGIN TRANSACTION;
+        UPDATE dbo.Accounts SET CreatedAtUtc = @start WHERE Kind <> 1 AND CreatedAtUtc > @start;
+        DISABLE TRIGGER dbo.TR_AccountStatusHistory_AppendOnly ON dbo.AccountStatusHistory;
+        UPDATE h SET ChangedAtUtc = @start
+        FROM dbo.AccountStatusHistory AS h JOIN dbo.Accounts AS a ON a.Id = h.AccountId
+        WHERE a.Kind <> 1 AND h.ChangedAtUtc > @start;
+        ENABLE TRIGGER dbo.TR_AccountStatusHistory_AppendOnly ON dbo.AccountStatusHistory;
+        COMMIT TRANSACTION;
+        """;
+    backdate.Parameters.AddWithValue("@start", options.EndUtc.AddDays(-options.Days));
+    await backdate.ExecuteNonQueryAsync();
+}
+
 await new LedgerGenerator(options, new FeeSchedule(feeRules), passwordHash).RunAsync(connection, systemAccounts);
 await Verification.RunAsync(connection);
 return 0;

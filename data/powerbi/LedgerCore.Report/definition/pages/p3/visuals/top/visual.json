@@ -1,0 +1,77 @@
+{
+    "$schema":  "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.13.0/schema.json",
+    "name":  "top",
+    "position":  {
+                     "x":  250,
+                     "y":  20,
+                     "z":  0,
+                     "height":  670,
+                     "width":  1000
+                 },
+    "visual":  {
+                   "visualType":  "clusteredBarChart",
+                   "query":  {
+                                 "queryState":  {
+                                                    "Category":  {
+                                                                     "projections":  [
+                                                                                         {
+                                                                                             "field":  {
+                                                                                                           "Column":  {
+                                                                                                                          "Expression":  {
+                                                                                                                                             "SourceRef":  {
+                                                                                                                                                               "Entity":  "vw_TopAccountsByVolume"
+                                                                                                                                                           }
+                                                                                                                                         },
+                                                                                                                          "Property":  "AccountId"
+                                                                                                                      }
+                                                                                                       },
+                                                                                             "queryRef":  "vw_TopAccountsByVolume.AccountId",
+                                                                                             "nativeQueryRef":  "AccountId"
+                                                                                         }
+                                                                                     ]
+                                                                 },
+                                                    "Y":  {
+                                                              "projections":  [
+                                                                                  {
+                                                                                      "field":  {
+                                                                                                    "Measure":  {
+                                                                                                                    "Expression":  {
+                                                                                                                                       "SourceRef":  {
+                                                                                                                                                         "Entity":  "vw_TopAccountsByVolume"
+                                                                                                                                                     }
+                                                                                                                                   },
+                                                                                                                    "Property":  "Top 10 customer volume"
+                                                                                                                }
+                                                                                                },
+                                                                                      "queryRef":  "vw_TopAccountsByVolume.Top 10 customer volume",
+                                                                                      "nativeQueryRef":  "Top 10 customer volume"
+                                                                                  }
+                                                                              ]
+                                                          }
+                                                }
+                             },
+                   "visualContainerObjects":  {
+                                                  "title":  [
+                                                                {
+                                                                    "properties":  {
+                                                                                       "show":  {
+                                                                                                    "expr":  {
+                                                                                                                 "Literal":  {
+                                                                                                                                 "Value":  "true"
+                                                                                                                             }
+                                                                                                             }
+                                                                                                },
+                                                                                       "text":  {
+                                                                                                    "expr":  {
+                                                                                                                 "Literal":  {
+                                                                                                                                 "Value":  "\u0027Top 10 customer accounts by volume\u0027"
+                                                                                                                             }
+                                                                                                             }
+                                                                                                }
+                                                                                   }
+                                                                }
+                                                            ]
+                                              },
+                   "drillFilterOtherVisuals":  true
+               }
+}

@@ -20,6 +20,7 @@ public sealed class LedgerDbContext(DbContextOptions<LedgerDbContext> options) :
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
     public DbSet<AccountBalanceSnapshot> AccountBalanceSnapshots => Set<AccountBalanceSnapshot>();
     public DbSet<BalanceSnapshotRun> BalanceSnapshotRuns => Set<BalanceSnapshotRun>();
+    public DbSet<AccountStatusChange> AccountStatusHistory => Set<AccountStatusChange>();
 
     async Task IUnitOfWork.SaveChangesAsync(CancellationToken cancellationToken)
     {
