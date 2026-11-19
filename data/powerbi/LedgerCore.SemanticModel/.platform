@@ -1,0 +1,11 @@
+{
+    "$schema":  "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+    "metadata":  {
+                     "type":  "SemanticModel",
+                     "displayName":  "LedgerCore"
+                 },
+    "config":  {
+                   "version":  "2.0",
+                   "logicalId":  "a9536860-afc5-4c8b-b98e-4b35fb0ff796"
+               }
+}

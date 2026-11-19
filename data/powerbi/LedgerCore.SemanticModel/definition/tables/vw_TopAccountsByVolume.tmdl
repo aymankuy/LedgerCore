@@ -1,0 +1,49 @@
+table vw_TopAccountsByVolume
+	lineageTag: 9328f7a4-b5ba-4c42-920f-f447654df0ab
+
+	measure 'Customer volume' = CALCULATE(SUM(vw_TopAccountsByVolume[Volume]), vw_TopAccountsByVolume[Kind] = "Customer")
+		formatString: #,0.00
+		lineageTag: a810582d-935e-440c-ac0b-e716fdef2b83
+
+	measure 'Top 10 customer volume' = IF(RANKX(ALLSELECTED(vw_TopAccountsByVolume[AccountId]), [Customer volume], , DESC) <= 10, [Customer volume])
+		formatString: #,0.00
+		lineageTag: d4d50c5c-752d-4183-bbdc-448ffd3a206f
+
+	column AccountId
+		dataType: string
+		lineageTag: d97f41ca-b50c-40b5-b298-7786dbb975b7
+		summarizeBy: none
+		sourceColumn: AccountId
+
+	column Currency
+		dataType: string
+		lineageTag: 0ae474cd-f762-49bd-9695-a7ebde59b5b5
+		summarizeBy: none
+		sourceColumn: Currency
+
+	column Kind
+		dataType: string
+		lineageTag: a48a87ad-b47e-46a0-b310-cfffe3581834
+		summarizeBy: none
+		sourceColumn: Kind
+
+	column Entries
+		dataType: int64
+		lineageTag: 1ae215de-72f9-4f7c-8237-9c02532519d5
+		summarizeBy: sum
+		sourceColumn: Entries
+
+	column Volume
+		dataType: decimal
+		lineageTag: e4bd177d-6561-4a7b-a626-f24e07d4f85c
+		summarizeBy: sum
+		sourceColumn: Volume
+
+	partition vw_TopAccountsByVolume = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Database("127.0.0.1,14333", "LedgerCoreDW"),
+				    Data = Source{[Schema="dbo",Item="vw_TopAccountsByVolume"]}[Data]
+				in
+				    Data

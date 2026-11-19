@@ -1,0 +1,95 @@
+{
+    "$schema":  "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.13.0/schema.json",
+    "name":  "line",
+    "position":  {
+                     "x":  250,
+                     "y":  90,
+                     "z":  0,
+                     "height":  600,
+                     "width":  1000
+                 },
+    "visual":  {
+                   "visualType":  "lineChart",
+                   "query":  {
+                                 "queryState":  {
+                                                    "Category":  {
+                                                                     "projections":  [
+                                                                                         {
+                                                                                             "field":  {
+                                                                                                           "Column":  {
+                                                                                                                          "Expression":  {
+                                                                                                                                             "SourceRef":  {
+                                                                                                                                                               "Entity":  "vw_DailyTransactionVolume"
+                                                                                                                                                           }
+                                                                                                                                         },
+                                                                                                                          "Property":  "Date"
+                                                                                                                      }
+                                                                                                       },
+                                                                                             "queryRef":  "vw_DailyTransactionVolume.Date",
+                                                                                             "nativeQueryRef":  "Date"
+                                                                                         }
+                                                                                     ]
+                                                                 },
+                                                    "Y":  {
+                                                              "projections":  [
+                                                                                  {
+                                                                                      "field":  {
+                                                                                                    "Measure":  {
+                                                                                                                    "Expression":  {
+                                                                                                                                       "SourceRef":  {
+                                                                                                                                                         "Entity":  "vw_DailyTransactionVolume"
+                                                                                                                                                     }
+                                                                                                                                   },
+                                                                                                                    "Property":  "Total volume"
+                                                                                                                }
+                                                                                                },
+                                                                                      "queryRef":  "vw_DailyTransactionVolume.Total volume",
+                                                                                      "nativeQueryRef":  "Total volume"
+                                                                                  }
+                                                                              ]
+                                                          },
+                                                    "Series":  {
+                                                                   "projections":  [
+                                                                                       {
+                                                                                           "field":  {
+                                                                                                         "Column":  {
+                                                                                                                        "Expression":  {
+                                                                                                                                           "SourceRef":  {
+                                                                                                                                                             "Entity":  "vw_DailyTransactionVolume"
+                                                                                                                                                         }
+                                                                                                                                       },
+                                                                                                                        "Property":  "Currency"
+                                                                                                                    }
+                                                                                                     },
+                                                                                           "queryRef":  "vw_DailyTransactionVolume.Currency",
+                                                                                           "nativeQueryRef":  "Currency"
+                                                                                       }
+                                                                                   ]
+                                                               }
+                                                }
+                             },
+                   "visualContainerObjects":  {
+                                                  "title":  [
+                                                                {
+                                                                    "properties":  {
+                                                                                       "show":  {
+                                                                                                    "expr":  {
+                                                                                                                 "Literal":  {
+                                                                                                                                 "Value":  "true"
+                                                                                                                             }
+                                                                                                             }
+                                                                                                },
+                                                                                       "text":  {
+                                                                                                    "expr":  {
+                                                                                                                 "Literal":  {
+                                                                                                                                 "Value":  "\u0027Daily transaction volume\u0027"
+                                                                                                                             }
+                                                                                                             }
+                                                                                                }
+                                                                                   }
+                                                                }
+                                                            ]
+                                              },
+                   "drillFilterOtherVisuals":  true
+               }
+}

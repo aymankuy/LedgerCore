@@ -1,0 +1,95 @@
+{
+    "$schema":  "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/visualContainer/2.13.0/schema.json",
+    "name":  "bands",
+    "position":  {
+                     "x":  250,
+                     "y":  20,
+                     "z":  0,
+                     "height":  670,
+                     "width":  1000
+                 },
+    "visual":  {
+                   "visualType":  "clusteredColumnChart",
+                   "query":  {
+                                 "queryState":  {
+                                                    "Category":  {
+                                                                     "projections":  [
+                                                                                         {
+                                                                                             "field":  {
+                                                                                                           "Column":  {
+                                                                                                                          "Expression":  {
+                                                                                                                                             "SourceRef":  {
+                                                                                                                                                               "Entity":  "vw_AccountBalance"
+                                                                                                                                                           }
+                                                                                                                                         },
+                                                                                                                          "Property":  "BalanceBand"
+                                                                                                                      }
+                                                                                                       },
+                                                                                             "queryRef":  "vw_AccountBalance.BalanceBand",
+                                                                                             "nativeQueryRef":  "BalanceBand"
+                                                                                         }
+                                                                                     ]
+                                                                 },
+                                                    "Y":  {
+                                                              "projections":  [
+                                                                                  {
+                                                                                      "field":  {
+                                                                                                    "Measure":  {
+                                                                                                                    "Expression":  {
+                                                                                                                                       "SourceRef":  {
+                                                                                                                                                         "Entity":  "vw_AccountBalance"
+                                                                                                                                                     }
+                                                                                                                                   },
+                                                                                                                    "Property":  "Customer accounts"
+                                                                                                                }
+                                                                                                },
+                                                                                      "queryRef":  "vw_AccountBalance.Customer accounts",
+                                                                                      "nativeQueryRef":  "Customer accounts"
+                                                                                  }
+                                                                              ]
+                                                          },
+                                                    "Series":  {
+                                                                   "projections":  [
+                                                                                       {
+                                                                                           "field":  {
+                                                                                                         "Column":  {
+                                                                                                                        "Expression":  {
+                                                                                                                                           "SourceRef":  {
+                                                                                                                                                             "Entity":  "vw_AccountBalance"
+                                                                                                                                                         }
+                                                                                                                                       },
+                                                                                                                        "Property":  "Currency"
+                                                                                                                    }
+                                                                                                     },
+                                                                                           "queryRef":  "vw_AccountBalance.Currency",
+                                                                                           "nativeQueryRef":  "Currency"
+                                                                                       }
+                                                                                   ]
+                                                               }
+                                                }
+                             },
+                   "visualContainerObjects":  {
+                                                  "title":  [
+                                                                {
+                                                                    "properties":  {
+                                                                                       "show":  {
+                                                                                                    "expr":  {
+                                                                                                                 "Literal":  {
+                                                                                                                                 "Value":  "true"
+                                                                                                                             }
+                                                                                                             }
+                                                                                                },
+                                                                                       "text":  {
+                                                                                                    "expr":  {
+                                                                                                                 "Literal":  {
+                                                                                                                                 "Value":  "\u0027Customer accounts by balance band\u0027"
+                                                                                                                             }
+                                                                                                             }
+                                                                                                }
+                                                                                   }
+                                                                }
+                                                            ]
+                                              },
+                   "drillFilterOtherVisuals":  true
+               }
+}

@@ -1,0 +1,51 @@
+table vw_AccountBalance
+	lineageTag: 0d53789f-1c45-4d8f-bd5f-a9b5744d8f4a
+
+	measure 'Customer accounts' = CALCULATE(DISTINCTCOUNT(vw_AccountBalance[AccountId]), vw_AccountBalance[Kind] = "Customer")
+		formatString: #,0
+		lineageTag: 149151f6-65f5-4f68-b968-dd8ed79a9515
+
+	column AccountId
+		dataType: string
+		lineageTag: 1c680868-053e-4211-b89d-6415dd0692b5
+		summarizeBy: none
+		sourceColumn: AccountId
+
+	column Currency
+		dataType: string
+		lineageTag: e036869f-f37f-4198-9c4c-dd3f13942552
+		summarizeBy: none
+		sourceColumn: Currency
+
+	column Kind
+		dataType: string
+		lineageTag: df025117-9d34-490d-a333-6882133634ce
+		summarizeBy: none
+		sourceColumn: Kind
+
+	column Status
+		dataType: string
+		lineageTag: b385f5ca-8b22-4049-834f-6f515b4cc2d3
+		summarizeBy: none
+		sourceColumn: Status
+
+	column Balance
+		dataType: decimal
+		lineageTag: 26386a34-ecff-4e07-bec1-b996607f1a61
+		summarizeBy: sum
+		sourceColumn: Balance
+
+	column BalanceBand
+		dataType: string
+		lineageTag: 0bd36b80-3c97-43cf-a353-939a3a7f8079
+		summarizeBy: none
+		sourceColumn: BalanceBand
+
+	partition vw_AccountBalance = m
+		mode: import
+		source =
+				let
+				    Source = Sql.Database("127.0.0.1,14333", "LedgerCoreDW"),
+				    Data = Source{[Schema="dbo",Item="vw_AccountBalance"]}[Data]
+				in
+				    Data
