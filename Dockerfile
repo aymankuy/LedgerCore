@@ -1,7 +1,7 @@
 # Multi-stage build: the SDK image compiles, only small runtime images ship.
 # Two deployables from one build: `--target worker` for the Worker; the API is the default (last) stage.
 
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:11.0 AS build
 WORKDIR /src
 
 # Restore first, from project files only, so the package layer is cached until a dependency changes.
