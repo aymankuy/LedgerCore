@@ -60,6 +60,13 @@ builder.Services.AddHealthChecks()
 
 var app = builder.Build();
 
+// Tells browsers to use HTTPS only for this host. It is skipped on plain HTTP and on localhost,
+// so docker compose is unaffected; on App Service the request is HTTPS (forwarded headers).
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
+
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseSerilogRequestLogging();
 
