@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.37906.3 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{C9674DCB-5085-4A16-B785-4C70DD1589BD}") = "LedgerCore.WarehouseLoad", "LedgerCore.WarehouseLoad.dtproj", "{BEE0853D-E0AF-303E-B1AD-10434EB60CEB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Development|Default = Development|Default
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BEE0853D-E0AF-303E-B1AD-10434EB60CEB}.Development|Default.ActiveCfg = Development
+		{BEE0853D-E0AF-303E-B1AD-10434EB60CEB}.Development|Default.Build.0 = Development
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {04A63D43-3569-41AB-9B50-3B92A186199D}
+	EndGlobalSection
+EndGlobal

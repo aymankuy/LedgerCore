@@ -1,5 +1,7 @@
 -- LedgerCore warehouse: a star schema in its own database, separate from the OLTP ledger.
--- Apply to an empty database (local: LedgerCoreDW; Azure: a second Azure SQL database).
+-- Apply to an empty database (local: LedgerCoreDW; Azure: a second Azure SQL database), with
+-- QUOTED_IDENTIFIER ON, which the filtered index below requires. SSMS and SqlClient do that by
+-- default; with sqlcmd pass -I.
 --
 --   dbo  the star: FactLedgerEntry and its dimensions. This is all Power BI reads.
 --   stg  staging tables. SSIS or Azure Data Factory copies OLTP rows here; the load
