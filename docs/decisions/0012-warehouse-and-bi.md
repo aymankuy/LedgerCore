@@ -35,6 +35,12 @@ Accounts that existed before the migration got one row with their current status
 
 **Azure Data Factory runs the same load in the cloud.** The pipeline JSON is in `data/adf/`. It is the cloud counterpart of the SSIS package: SSIS is the on-premises ecosystem (a package on a Windows server with SQL Server), Data Factory is Azure's managed one (no server, pay per run). Having both shows the same load in both.
 
+The pipeline was run twice against the deployed ledger on Azure SQL, loading a second free-tier database, `ledgercoredw`, on the same server. Run one copied 10 entries and 8 status rows and the warehouse matched the ledger exactly (10 facts, 8 account versions, 0 rejected). Run two copied 0 entries and loaded nothing new, so the load is re-runnable in the cloud as well (`etl.LoadAudit` has both runs; screenshot in `docs/images/adf-pipeline-run.png`). The factory's managed identity has `EXECUTE` on three extract procedures in the ledger and only the `etl` and `stg` schemas in the warehouse.
+
+The factory was deleted after the recorded run to keep the demo at zero cost; an idle factory costs nothing, but nothing here needs one running. The trigger is checked in as stopped for the same reason. The run was driven by hand, from the Azure CLI, rather than by the nightly trigger.
+
+Running it on the first attempt failed: the datasets carried an empty `schema` array, which the runtime tried to read as the SQL schema name. They now point at a table, which the activities' queries and procedures override.
+
 ## Consequences
 
 - The warehouse is as fresh as the last load (nightly), which is fine for reports and wrong for anything transactional.

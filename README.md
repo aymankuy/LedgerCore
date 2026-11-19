@@ -205,7 +205,10 @@ flowchart LR
 - **One implementation, two orchestrators.** The load logic is T-SQL in [`003_etl_procedures.sql`](data/warehouse/003_etl_procedures.sql). The [SSIS package](data/ssis/LedgerCore.WarehouseLoad) (the on-premises ecosystem: runs on a Windows server next to SQL Server) and the [Azure Data Factory pipeline](data/adf) (the cloud one: no server, billed per run) only copy rows into staging and call it, so they cannot drift apart. Rows that cannot be loaded go to `etl.RejectedRow` with a reason instead of failing the run.
 - **A load script for local use:** `powershell -File scripts/load-warehouse.ps1` creates `LedgerCoreDW` on the compose database and loads it.
 
+The Data Factory pipeline ran twice against the deployed Azure SQL ledger: the first run copied 10 entries and the warehouse matched the ledger, the second copied none and loaded nothing new. The factory was deleted afterwards to keep the demo at zero cost (details in [ADR 0012](docs/decisions/0012-warehouse-and-bi.md)).
+
 ![SSIS control flow](docs/images/ssis-control-flow.png)
+![Data Factory pipeline run](docs/images/adf-pipeline-run.png)
 
 ### Power BI report
 

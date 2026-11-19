@@ -4,7 +4,6 @@
         "linkedServiceName": { "referenceName": "LS_Warehouse", "type": "LinkedServiceReference" },
         "annotations": [],
         "type": "AzureSqlTable",
-        "schema": [],
         "typeProperties": { "schema": "stg", "table": "AccountStatusChange" }
     }
 }

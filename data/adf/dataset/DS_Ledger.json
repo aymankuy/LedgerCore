@@ -4,7 +4,6 @@
         "linkedServiceName": { "referenceName": "LS_Ledger", "type": "LinkedServiceReference" },
         "annotations": [],
         "type": "AzureSqlTable",
-        "schema": [],
-        "typeProperties": {}
+        "typeProperties": { "schema": "dbo", "table": "Accounts" }
     }
 }
