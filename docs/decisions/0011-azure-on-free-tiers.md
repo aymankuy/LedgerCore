@@ -140,6 +140,15 @@ rule for the runner's IP, migrates, and removes the rule in a step that always r
 - The free trial lasts 30 days. After that, the resources stop unless the subscription is
   upgraded; with the upgrade, this design costs cents a month (storage and Key Vault
   operations).
+- **Key Vault purge protection is on** (since 2026-11-19). It cannot be turned off, so a
+  deleted vault, and its name, stays reserved for the 7 soft-delete days. A teardown followed
+  by an immediate redeploy of the same name has to wait or use another suffix.
+- **The SQL rule "Allow Azure services" (0.0.0.0) stays.** Any Azure customer's service can
+  reach the server's port; only Entra authentication and the database permissions stop them.
+  The free App Service plan has no fixed outbound address and no VNet integration, and its
+  list of possible outbound addresses is not known when Bicep is compiled, so a per-address
+  rule set cannot be written in the template. Private networking would remove the rule but
+  is not part of the free tiers.
 - Bicep cannot create Entra users in SQL, and should not hold secrets. The deploy script
   therefore generates the JWT signing key and the admin password once, directly into Key
   Vault, and runs the migration step.

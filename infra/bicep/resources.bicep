@@ -36,6 +36,9 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
     enableRbacAuthorization: true
     enableSoftDelete: true
     softDeleteRetentionInDays: 7
+    // A deleted vault or secret cannot be purged early, by anyone, until the 7 days pass.
+    // Cannot be switched off later, and a deleted vault's name stays taken for those 7 days.
+    enablePurgeProtection: true
   }
 }
 
