@@ -50,7 +50,7 @@
     <PackageVersion Include="Polly.Core" Version="8.9.1" />
   </ItemGroup>
   <ItemGroup Label="Hosting">
-    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="9.0.19" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="11.0.0" />
   </ItemGroup>
   <ItemGroup Label="Azure">
     <PackageVersion Include="Azure.Storage.Blobs" Version="12.30.1" />
